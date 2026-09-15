@@ -52,3 +52,11 @@ export interface IFeedItem {
   isLiked: boolean;
   isBookmarked: boolean;
 }
+
+export type FeedScope = 'public' | 'following';
+
+export interface FeedPage {
+  items: IFeedItem[];
+  nextCursor: string | null;
+  hasMore: boolean;
+}

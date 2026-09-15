@@ -6,6 +6,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useUserStore } from '../../stores/userStore';
 import { Colors } from '../../constants/colors';
+import { useAuthStore } from '../../stores/authStore';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const THUMB_W = (SCREEN_W - 32 - 4) / 3;
@@ -34,15 +35,25 @@ const SETTINGS_ITEMS = [
   { label: '关注领域（花式）', icon: '🪀' },
   { label: '所在地区', icon: '📍' },
   { label: '隐私设置', icon: '🔒' },
+  { label: '退出登录', icon: '↪' },
 ];
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { userInfo } = useUserStore();
+  const signOut = useAuthStore((state) => state.signOut);
+  const isSubmitting = useAuthStore((state) => state.isSubmitting);
   const [activeTab, setActiveTab] = useState<ContentTab>('发布');
   const [showSettings, setShowSettings] = useState(false);
 
   const handleSettingsTap = (label: string) => {
+    if (label === '退出登录') {
+      Alert.alert('退出登录', '退出后需要重新验证手机号才能继续发布和互动。', [
+        { text: '取消', style: 'cancel' },
+        { text: '退出', style: 'destructive', onPress: () => void signOut() },
+      ]);
+      return;
+    }
     if (label === '隐私设置') {
       Alert.alert('隐私设置', PRIVACY_OPTIONS.join('\n'), [{ text: '关闭' }]);
     } else {
@@ -66,6 +77,7 @@ export default function ProfileScreen() {
               key={item.label}
               style={styles.settingRow}
               onPress={() => handleSettingsTap(item.label)}
+              disabled={isSubmitting}
             >
               <Text style={styles.settingIcon}>{item.icon}</Text>
               <Text style={styles.settingLabel}>{item.label}</Text>

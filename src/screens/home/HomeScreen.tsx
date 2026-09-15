@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,13 +9,15 @@ import {
   Animated,
   Dimensions,
   Alert,
+  RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFeedStore } from '../../stores/feedStore';
 import { Colors } from '../../constants/colors';
 import { POST_CATEGORIES } from '../../constants/categories';
 import { formatTimeAgoFromString } from '../../utils/timeAgo';
-import type { IFeedItem, IFeedAuthor } from '../../types/feed';
+import type { IFeedItem } from '../../types/feed';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const TAB_ITEMS = ['为你推荐', '正在关注'] as const;
@@ -197,7 +199,11 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<FeedTab>('为你推荐');
   const indicatorAnim = useRef(new Animated.Value(0)).current;
-  const { feedList, toggleLike, toggleBookmark } = useFeedStore();
+  const { feedList, loadState, errorMessage, hasMore, loadFeed, loadMore, toggleLike, toggleBookmark } = useFeedStore();
+
+  useEffect(() => {
+    void loadFeed(activeTab === '为你推荐' ? 'public' : 'following');
+  }, [activeTab, loadFeed]);
 
   const handleTabPress = (tab: FeedTab, idx: number) => {
     setActiveTab(tab);
@@ -222,6 +228,27 @@ export default function HomeScreen() {
       onBookmark={() => toggleBookmark(item.id)}
     />
   ), [toggleLike, toggleBookmark]);
+
+  const handleRefresh = () => {
+    void loadFeed(activeTab === '为你推荐' ? 'public' : 'following', true);
+  };
+
+  const handleEndReached = () => {
+    if (hasMore && loadState === 'success') void loadMore();
+  };
+
+  const renderFooter = () => {
+    if (loadState === 'loading_more') return <ActivityIndicator color={Colors.textMuted} style={styles.footer} />;
+    if (loadState === 'error' && feedList.length > 0) {
+      return (
+        <TouchableOpacity onPress={() => void loadMore()} style={styles.footerButton}>
+          <Text style={styles.footerText}>加载失败，点击重试</Text>
+        </TouchableOpacity>
+      );
+    }
+    if (loadState === 'success' && !hasMore && feedList.length > 0) return <Text style={styles.footerText}>已经到底了</Text>;
+    return null;
+  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -250,6 +277,19 @@ export default function HomeScreen() {
         data={feedList}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
+        onEndReached={handleEndReached}
+        onEndReachedThreshold={0.5}
+        ListEmptyComponent={
+          loadState === 'loading' || loadState === 'refreshing'
+            ? <ActivityIndicator color={Colors.textMuted} style={styles.emptyState} />
+            : <View style={styles.emptyState}>
+                <Text style={styles.emptyTitle}>{errorMessage ? '加载失败' : '还没有动态'}</Text>
+                <Text style={styles.emptyText}>{errorMessage ?? '成为第一个分享练习的人吧。'}</Text>
+                {errorMessage && <TouchableOpacity onPress={handleRefresh} style={styles.retryButton}><Text style={styles.retryText}>重新加载</Text></TouchableOpacity>}
+              </View>
+        }
+        ListFooterComponent={renderFooter}
+        refreshControl={<RefreshControl refreshing={loadState === 'refreshing'} onRefresh={handleRefresh} tintColor={Colors.white} />}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
         ItemSeparatorComponent={() => <View style={styles.divider} />}
@@ -287,6 +327,14 @@ const styles = StyleSheet.create({
   // ── 列表 ──
   listContent: { paddingBottom: 24 },
   divider: { height: 0.5, backgroundColor: '#1a1d22', marginHorizontal: 16 },
+  emptyState: { minHeight: 220, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24, gap: 8 },
+  emptyTitle: { color: Colors.white, fontSize: 16, fontWeight: '700' },
+  emptyText: { color: Colors.textMuted, fontSize: 13, textAlign: 'center' },
+  retryButton: { backgroundColor: Colors.white, borderRadius: 8, paddingHorizontal: 16, paddingVertical: 8, marginTop: 8 },
+  retryText: { color: Colors.black, fontSize: 13, fontWeight: '700' },
+  footer: { paddingVertical: 16 },
+  footerButton: { alignItems: 'center', paddingVertical: 16 },
+  footerText: { color: Colors.textMuted, fontSize: 12, textAlign: 'center', paddingVertical: 16 },
 
   // ── 卡片 ──
   card: { paddingHorizontal: 16, paddingVertical: 14, gap: 10 },
