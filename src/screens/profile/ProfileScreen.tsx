@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import {
   View, Text, Image, TouchableOpacity,
-  ScrollView, StyleSheet, Alert, Dimensions,
+  ScrollView, StyleSheet, Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useUserStore } from '../../stores/userStore';
 import { Colors } from '../../constants/colors';
+import type { RootStackParamList } from '../../navigation/RootNavigator';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const THUMB_W = (SCREEN_W - 32 - 4) / 3;
@@ -22,67 +25,21 @@ const MOCK_GEAR_THUMBS = [
   { id: 'g2', imageUrl: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=300&auto=format&fit=crop&q=80', name: 'NSK 金色凹轴' },
 ];
 
-const PRIVACY_OPTIONS = [
-  '谁可以看我的帖子',
-  '谁可以看我的装备库',
-  '谁可以看我的关注列表',
-  '谁可以给我发私信',
-];
-
-const SETTINGS_ITEMS = [
-  { label: '基本资料', icon: '👤' },
-  { label: '关注领域（花式）', icon: '🪀' },
-  { label: '所在地区', icon: '📍' },
-  { label: '隐私设置', icon: '🔒' },
-];
-
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { userInfo } = useUserStore();
   const [activeTab, setActiveTab] = useState<ContentTab>('发布');
-  const [showSettings, setShowSettings] = useState(false);
-
-  const handleSettingsTap = (label: string) => {
-    if (label === '隐私设置') {
-      Alert.alert('隐私设置', PRIVACY_OPTIONS.join('\n'), [{ text: '关闭' }]);
-    } else {
-      Alert.alert(label, '编辑功能即将上线', [{ text: '好的' }]);
-    }
-  };
-
-  if (showSettings) {
-    return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
-        <View style={styles.navbar}>
-          <TouchableOpacity onPress={() => setShowSettings(false)}>
-            <Text style={styles.backBtn}>‹ 返回</Text>
-          </TouchableOpacity>
-          <Text style={styles.navTitle}>账户设置</Text>
-          <View style={{ width: 60 }} />
-        </View>
-        <ScrollView style={styles.scroll}>
-          {SETTINGS_ITEMS.map((item) => (
-            <TouchableOpacity
-              key={item.label}
-              style={styles.settingRow}
-              onPress={() => handleSettingsTap(item.label)}
-            >
-              <Text style={styles.settingIcon}>{item.icon}</Text>
-              <Text style={styles.settingLabel}>{item.label}</Text>
-              <Text style={styles.settingArrow}>›</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-    );
-  }
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* 顶部导航 */}
       <View style={styles.navbar}>
         <Text style={styles.navTitle}>我的</Text>
-        <TouchableOpacity onPress={() => setShowSettings(true)}>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('AccountSettings')}
+          accessibilityLabel="账户设置"
+        >
           <Text style={styles.settingsBtn}>⚙️</Text>
         </TouchableOpacity>
       </View>
@@ -165,7 +122,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0.5, borderBottomColor: '#1a1d22',
   },
   navTitle: { color: Colors.white, fontSize: 18, fontWeight: '800' },
-  backBtn: { color: Colors.white, fontSize: 20 },
   settingsBtn: { fontSize: 22 },
   scroll: { flex: 1 },
 
@@ -221,14 +177,4 @@ const styles = StyleSheet.create({
   },
   gearThumb: { width: 56, height: 56, borderRadius: 10 },
   gearName: { color: Colors.white, fontSize: 14, fontWeight: '600', flex: 1 },
-
-  // 设置页
-  settingRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingVertical: 16, paddingHorizontal: 20,
-    borderBottomWidth: 0.5, borderBottomColor: '#1a1d22',
-  },
-  settingIcon: { fontSize: 20 },
-  settingLabel: { color: Colors.white, fontSize: 15, flex: 1 },
-  settingArrow: { color: Colors.textMuted, fontSize: 20 },
 });

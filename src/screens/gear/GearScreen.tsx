@@ -121,6 +121,12 @@ export default function GearScreen() {
         contentContainerStyle={styles.grid}
         columnWrapperStyle={styles.row}
         showsVerticalScrollIndicator={false}
+        ListEmptyComponent={(
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyTitle}>暂无藏品</Text>
+            <Text style={styles.emptyText}>这个分类还没有内容</Text>
+          </View>
+        )}
         renderItem={({ item }) => (
           <TouchableOpacity style={styles.card} activeOpacity={0.85}>
             <View style={styles.imgWrapper}>
@@ -163,7 +169,7 @@ const styles = StyleSheet.create({
   addBtn: {},
   addBtnText: { color: Colors.white, fontSize: 13, fontWeight: '600' },
 
-  catScroll: { borderBottomWidth: 0.5, borderBottomColor: '#1a1d22' },
+  catScroll: { flexGrow: 0, borderBottomWidth: 0.5, borderBottomColor: '#1a1d22' },
   catContent: { paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
   catPill: {
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
@@ -175,6 +181,9 @@ const styles = StyleSheet.create({
 
   grid: { padding: 16, gap: 10 },
   row: { gap: 10 },
+  emptyState: { minHeight: 240, alignItems: 'center', justifyContent: 'center', gap: 6 },
+  emptyTitle: { color: Colors.white, fontSize: 15, fontWeight: '700' },
+  emptyText: { color: Colors.textMuted, fontSize: 13 },
 
   card: {
     width: CARD_W, backgroundColor: '#0c0f14',

@@ -8,6 +8,7 @@ import JamScreen from '../screens/jam/JamScreen';
 import UserProfileScreen from '../screens/profile/UserProfileScreen';
 import PostDetailScreen from '../screens/post/PostDetailScreen';
 import SetupRequiredScreen from '../screens/auth/SetupRequiredScreen';
+import AccountSettingsScreen from '../screens/profile/AccountSettingsScreen';
 import { getApiConfig } from '../services/api/config';
 
 export type RootStackParamList = {
@@ -17,6 +18,7 @@ export type RootStackParamList = {
   Jam: undefined;
   UserProfile: { userId: string };
   PostDetail: { postId: string };
+  AccountSettings: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -43,6 +45,7 @@ export default function RootNavigator() {
         <Stack.Screen name="Jam" component={JamScreen} />
         <Stack.Screen name="UserProfile" component={UserProfileScreen} />
         <Stack.Screen name="PostDetail" component={PostDetailScreen} />
+        <Stack.Screen name="AccountSettings" component={AccountSettingsScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
