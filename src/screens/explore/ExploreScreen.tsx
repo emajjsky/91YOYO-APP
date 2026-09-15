@@ -6,6 +6,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/colors';
 import { POST_CATEGORIES } from '../../constants/categories';
+import { filterExploreItems } from './exploreSearch';
 
 type CategoryId = typeof POST_CATEGORIES[number]['id'];
 
@@ -55,7 +56,11 @@ export default function ExploreScreen() {
   const [searchText, setSearchText] = useState('');
   const [activeCategory, setActiveCategory] = useState<CategoryId>('daily');
 
-  const items = MOCK_EXPLORE[activeCategory] ?? [];
+  const categoryItems = MOCK_EXPLORE[activeCategory] ?? [];
+  const searchableItems = searchText.trim()
+    ? Object.values(MOCK_EXPLORE).flat()
+    : categoryItems;
+  const items = filterExploreItems(searchableItems, searchText);
   const hotTags = HOT_TAGS[activeCategory] ?? [];
 
   return (
@@ -113,15 +118,26 @@ export default function ExploreScreen() {
           </TouchableOpacity>
         ))}
 
+        {items.length === 0 && (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyTitle}>没有找到相关内容</Text>
+            <Text style={styles.emptyText}>换个关键词试试</Text>
+          </View>
+        )}
+
         {/* 热门话题 */}
-        <Text style={styles.hotTitle}>🔥 热门话题</Text>
-        <View style={styles.hotTagRow}>
-          {hotTags.map((tag) => (
-            <TouchableOpacity key={tag} style={styles.hotTag}>
-              <Text style={styles.hotTagText}>{tag}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        {!searchText.trim() && (
+          <>
+            <Text style={styles.hotTitle}>🔥 热门话题</Text>
+            <View style={styles.hotTagRow}>
+              {hotTags.map((tag) => (
+                <TouchableOpacity key={tag} style={styles.hotTag}>
+                  <Text style={styles.hotTagText}>{tag}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </>
+        )}
       </ScrollView>
     </View>
   );
@@ -143,7 +159,7 @@ const styles = StyleSheet.create({
   clearBtn: { color: Colors.textMuted, fontSize: 16, paddingLeft: 8 },
 
   // 分类
-  catScroll: { borderBottomWidth: 0.5, borderBottomColor: '#1a1d22' },
+  catScroll: { flexGrow: 0, borderBottomWidth: 0.5, borderBottomColor: '#1a1d22' },
   catContent: { paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
   catPill: {
     paddingHorizontal: 14, paddingVertical: 7,
@@ -167,6 +183,9 @@ const styles = StyleSheet.create({
   cardDesc: { color: Colors.textMuted, fontSize: 13, lineHeight: 20 },
   cardFooter: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 4 },
   cardLikes: { color: Colors.textMuted, fontSize: 13 },
+  emptyState: { minHeight: 180, alignItems: 'center', justifyContent: 'center', gap: 6 },
+  emptyTitle: { color: Colors.white, fontSize: 15, fontWeight: '700' },
+  emptyText: { color: Colors.textMuted, fontSize: 13 },
 
   // 热门话题
   hotTitle: { color: Colors.white, fontSize: 15, fontWeight: '800', marginTop: 8, marginBottom: 4 },

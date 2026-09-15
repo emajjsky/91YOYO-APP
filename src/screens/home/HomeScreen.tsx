@@ -13,11 +13,14 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFeedStore } from '../../stores/feedStore';
 import { Colors } from '../../constants/colors';
 import { POST_CATEGORIES } from '../../constants/categories';
 import { formatTimeAgoFromString } from '../../utils/timeAgo';
 import type { IFeedItem } from '../../types/feed';
+import type { RootStackParamList } from '../../navigation/RootNavigator';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const TAB_ITEMS = ['为你推荐', '正在关注'] as const;
@@ -124,13 +127,14 @@ function AudioBar({ audio }: { audio: IFeedItem['audio'] }) {
 }
 
 // ─── 帖子卡片 ─────────────────────────────────────
-function FeedCard({ item, onLike, onBookmark }: {
+function FeedCard({ item, onLike, onBookmark, onPress }: {
   item: IFeedItem;
   onLike: () => void;
   onBookmark: () => void;
+  onPress: () => void;
 }) {
   return (
-    <View style={styles.card}>
+    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.96}>
       {/* 作者信息行 */}
       <View style={styles.authorRow}>
         <TouchableOpacity>
@@ -196,13 +200,14 @@ function FeedCard({ item, onLike, onBookmark }: {
           <Text style={styles.actionIcon}>{item.isBookmarked ? '🔖' : '🏷'}</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
 // ─── 主页面 ───────────────────────────────────────
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [activeTab, setActiveTab] = useState<FeedTab>('为你推荐');
   const indicatorAnim = useRef(new Animated.Value(0)).current;
   const { feedList, loadState, errorMessage, hasMore, loadFeed, loadMore, toggleLike, toggleBookmark } = useFeedStore();
@@ -232,8 +237,9 @@ export default function HomeScreen() {
       item={item}
       onLike={() => toggleLike(item.id)}
       onBookmark={() => toggleBookmark(item.id)}
+      onPress={() => navigation.navigate('PostDetail', { postId: item.id })}
     />
-  ), [toggleLike, toggleBookmark]);
+  ), [navigation, toggleLike, toggleBookmark]);
 
   const handleRefresh = () => {
     void loadFeed(activeTab === '为你推荐' ? 'public' : 'following', true);
