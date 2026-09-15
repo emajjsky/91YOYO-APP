@@ -1,0 +1,7 @@
+<svg viewBox="0 0 81 81" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Explore TabBar Icon - Inactive (#71767B) -->
+  <!-- Outer Compass Ring -->
+  <circle cx="40.5" cy="40.5" r="23" stroke="#71767B" stroke-width="4.5"/>
+  <!-- Kinetic Diamond Pointer -->
+  <polygon points="40.5,24 45.5,37 57,40.5 45.5,44 40.5,57 35.5,44 24,40.5 35.5,37" fill="#71767B"/>
+</svg>
