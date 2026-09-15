@@ -13,11 +13,10 @@ export default function SetupRequiredScreen() {
       </View>
       <Text style={styles.title}>连接开发环境</Text>
       <Text style={styles.body}>
-        App 工程已准备好，但还没有配置 Supabase。请在项目根目录创建 .env.local，并填写 development 项目的公开 URL 和 anon key。
+        App 工程已准备好，但还没有配置 91YOYO API。请在项目根目录创建 .env.local，并填写开发环境 API 地址。
       </Text>
       <View style={styles.codeBlock}>
-        <Text style={styles.codeText}>EXPO_PUBLIC_SUPABASE_URL</Text>
-        <Text style={styles.codeText}>EXPO_PUBLIC_SUPABASE_ANON_KEY</Text>
+        <Text style={styles.codeText}>EXPO_PUBLIC_API_BASE_URL</Text>
       </View>
       <Text style={styles.note}>配置后重启 Expo 开发服务器即可继续。</Text>
     </View>

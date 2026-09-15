@@ -21,7 +21,7 @@ npm ci
 cp .env.example .env.local
 ```
 
-在 `.env.local` 填入 development Supabase 项目的公开 URL 和 anon key。不要把 service role、短信供应商 secret、微信 AppSecret 或推送私钥写入任何 `EXPO_PUBLIC_*` 变量。
+在 `.env.local` 填入 development API 地址。数据库密码、COS Secret、短信密钥、微信 AppSecret 或推送私钥不得写入任何 `EXPO_PUBLIC_*` 变量。
 
 ## 3. 启动
 
@@ -45,23 +45,23 @@ npx tsc --noEmit
 | 变量 | 是否必需 | 说明 |
 | --- | --- | --- |
 | `EXPO_PUBLIC_APP_ENV` | 是 | `development`, `staging`, `production` |
-| `EXPO_PUBLIC_SUPABASE_URL` | 接后端后必需 | 当前环境 Supabase URL |
-| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | 接后端后必需 | 可公开 anon key，权限依赖 RLS |
+| `EXPO_PUBLIC_API_BASE_URL` | 是 | 当前环境 91YOYO API 地址 |
 | `EXPO_PUBLIC_API_TIMEOUT_MS` | 否 | 请求超时，默认 15000 |
 
 `.env.local` 不提交。应用启动时应校验必需变量，并在开发环境显示可定位的配置错误。
 
-## 5. Supabase 本地开发（计划基线）
+## 5. API 与数据库开发
 
-后端开始实现后，仓库需要加入 Supabase CLI 配置和 migration。标准流程应为：
+服务端位于 `server/`，标准检查为：
 
 ```bash
-npx supabase start
-npx supabase db reset
-npx supabase gen types typescript --local
+cd server
+npm ci
+npm test
+npm run build
 ```
 
-生成类型应提交到 `src/services/supabase/database.types.ts`。数据库 schema 变化后必须重新生成并运行类型检查。生产变更通过 CI/受控命令应用 migration，不在控制台手工改完即结束。
+数据库 migration 位于 `server/migrations/`。开发模拟器通过 SSH 隧道访问服务器内部 API：`ssh -N -L 8791:127.0.0.1:8791 <server>`。生产变更通过受控部署应用 migration，不在服务器手工改完即结束。
 
 ## 6. iOS
 

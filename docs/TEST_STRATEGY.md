@@ -11,8 +11,8 @@
 ### 类型与静态检查
 
 - `tsc --noEmit`：所有提交必跑。
-- 增加 ESLint 后检查 hooks、未处理 Promise、无障碍属性和禁止 Screen 直接导入 Supabase client 的规则。
-- Supabase 生成类型与 DTO mapper 一起编译，防止数据库字段变化静默扩散。
+- 增加 ESLint 后检查 hooks、未处理 Promise、无障碍属性和禁止 Screen 直接访问数据库/COS 的规则。
+- API DTO 与客户端 mapper 一起编译，防止字段变化静默扩散。
 
 ### 单元测试
 
@@ -36,7 +36,7 @@
 
 网络响应使用固定 JSON fixtures；同一 fixtures 也供小程序 adapter 契约测试使用。
 
-### 数据库与 RLS 测试
+### 数据库与 API 权限测试
 
 每个 migration 至少验证：
 
@@ -47,7 +47,7 @@
 - 点赞/收藏/关注重复写入保持一条记录，计数不漂移。
 - 删除与外键策略不会暴露孤儿记录。
 
-同时检查所有外键和 RLS 判断列存在索引，Feed 查询用 `(published_at, id)` 游标而非深页 offset。
+同时检查所有外键和权限判断列存在索引，Feed 查询用 `(published_at, id)` 游标而非深页 offset。
 
 ### 端到端测试
 
@@ -86,7 +86,7 @@
 
 ## 5. CI 门槛
 
-每个 Pull Request：依赖安装 → TypeScript → lint → 单元/组件测试 → Supabase reset + RLS 测试。合并到发布分支后构建 iOS/Android 内测包并运行 E2E 冒烟。
+每个 Pull Request：App 与 server 依赖安装 → TypeScript → lint → 单元/组件测试 → 临时 PostgreSQL migration + 权限测试。合并到发布分支后构建 iOS/Android 内测包并运行 E2E 冒烟。
 
 不以单一覆盖率数字代替关键场景。初始建议业务 service/repository 行覆盖率不低于 80%，但权限判断和上传状态机要求关键分支全部覆盖。
 
@@ -95,5 +95,5 @@
 - 无 P0/P1 已知缺陷。
 - 登录、Feed、发帖、播放和注销在 staging 真机通过。
 - 崩溃和 API/上传/播放失败可关联 request ID。
-- production 环境没有测试账号、开发 URL 或 service role 泄漏。
+- production 环境没有测试账号、开发 URL、数据库密码或 COS Secret 泄漏。
 - 隐私文案与实际权限、SDK、采集数据一致。

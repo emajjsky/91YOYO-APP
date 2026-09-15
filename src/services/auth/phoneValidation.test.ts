@@ -15,7 +15,7 @@ describe('validatePhone', () => {
     expect(validatePhone('   ')).toBe('请输入手机号');
   });
 
-  it('normalizes a valid local number to E.164 for Supabase', () => {
+  it('normalizes a valid local number to E.164 for the SMS API', () => {
     expect(normalizePhone('13800138000')).toBe('+8613800138000');
   });
 });

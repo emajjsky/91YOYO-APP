@@ -9,7 +9,8 @@
 - Expo 57 / React Native 0.86 / React 19
 - React Navigation 7
 - Zustand 5
-- Supabase JS 2（已安装，尚未接入）
+- Node.js + Fastify API（`server/`）
+- PostgreSQL 16 + 腾讯云 COS
 - TypeScript 严格模式
 
 ## 本地启动
@@ -37,7 +38,7 @@ npm run start
 
 ```text
 React Native App ─┐
-                  ├── Supabase Auth / Postgres / Storage / Realtime
+                  ├── 91YOYO API / PostgreSQL / 腾讯云 COS
 微信小程序 ────────┘
 ```
 
@@ -47,6 +48,6 @@ React Native App ─┐
 
 - 将 `app.json` 中默认应用名、slug、Bundle Identifier 和 Android Package 改为正式值。
 - 将 `userInterfaceStyle` 改为与纯黑主题一致的 `dark`。
-- 配置 Supabase 开发、预发布、生产三个隔离环境。
+- 配置 API 开发、预发布、生产三个隔离环境。
 - 补齐隐私政策、用户协议、内容举报、账号注销和内容审核流程。
 - 完成真机媒体、弱网、后台播放、推送和权限回归。

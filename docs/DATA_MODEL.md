@@ -1,7 +1,7 @@
 # 91YOYO 共享数据模型
 
 版本：v0.1  
-数据库：PostgreSQL / Supabase
+数据库：PostgreSQL 16 / 腾讯云轻量服务器
 
 ## 1. 设计约定
 
@@ -11,7 +11,7 @@
 - 公开实体使用 `uuid`。若部署环境支持 UUIDv7，则新业务表使用时间有序 UUIDv7；`profiles.id` 保持与 `auth.users.id` 一致。
 - 所有外键列建索引；Feed 等组合查询按“等值列在前、时间范围列在后”建立复合索引。
 - 计数缓存只是派生值，点赞/评论事实仍以关系表为准。
-- 所有客户端可访问表启用 RLS；策略中的 `auth.uid()` 写为 `(select auth.uid())` 并为参与判断的列建索引。
+- 客户端不直连数据库；只有最小权限的 `yoyo_app` 数据库账号可由本机 API 使用。
 
 ## 2. 核心枚举
 
@@ -48,7 +48,7 @@
 
 ### `user_identities`
 
-用于后续微信、Apple 等外部身份绑定：`id`, `profile_id`, `provider`, `subject`, `provider_tenant`, `created_at`, `last_used_at`。唯一约束 `(provider, provider_tenant, subject)`；仅 Edge Function 可写。
+用于后续微信、Apple 等外部身份绑定：`id`, `profile_id`, `provider`, `subject`, `provider_tenant`, `created_at`, `last_used_at`。唯一约束 `(provider, provider_tenant, subject)`；仅认证服务可写。
 
 ### `follows` / `blocks`
 
@@ -146,7 +146,7 @@
 - `notifications(id, profile_id, type, actor_id, target_type, target_id, payload, read_at, created_at)`；索引 `(profile_id, read_at, created_at desc)`。
 - `audit_events(id, actor_id, action, target_type, target_id, request_id, metadata, created_at)`；只允许服务端写入，metadata 不保存令牌或私聊正文。
 
-## 9. RLS 权限摘要
+## 9. API 权限摘要
 
 | 数据 | 匿名用户 | 登录用户 | 所有者/成员 |
 | --- | --- | --- | --- |
@@ -158,4 +158,4 @@
 | 会话/消息 | 无 | 无 | 会话成员读，发送者写 |
 | 举报 | 无 | 只能创建和读自己的 | 管理角色处理 |
 
-任何管理读取都走单独角色或服务端函数，不通过在客户端关闭 RLS 实现。
+任何管理读取都走单独服务端角色；数据库端口不开放公网，客户端无法绕过 API 权限检查。

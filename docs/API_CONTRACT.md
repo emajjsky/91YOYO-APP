@@ -5,7 +5,7 @@
 
 ## 1. 契约原则
 
-- 本文定义业务语义；App 可通过 `supabase-js`，小程序可通过 HTTPS 调用相同 PostgREST/RPC/Edge Function。
+- 本文定义业务语义；App 与小程序都通过 HTTPS 调用相同的 91YOYO REST API。
 - 页面只调用 repository/adapter，不直接依赖数据库列名。
 - 数据库使用 `snake_case`，对外 DTO 使用 `camelCase`。
 - 所有时间为 UTC ISO 8601，例如 `2026-09-15T08:30:00.000Z`。
@@ -147,7 +147,7 @@ interface Post {
 
 ## 6. 端点清单
 
-下表是逻辑端点。常规 CRUD 可映射到 PostgREST/RPC；需要密钥或编排的端点使用 Edge Function。
+下表是 91YOYO API 的逻辑端点。数据库与 COS 凭据只存在于服务器端。
 
 | 方法 | 路径 | 鉴权 | 阶段 | 说明 |
 | --- | --- | --- | --- | --- |
@@ -233,7 +233,7 @@ GET /v1/feed?scope=public&category=tutorial&styleTag=1A&limit=20&cursor=...
 - 点赞、收藏、关注使用关系表唯一键和 PUT/DELETE 语义，重复请求返回当前状态。
 - 编辑资料和装备使用 `updatedAt` 做乐观并发；冲突返回 `409 VERSION_CONFLICT` 并附最新资源。
 - 消息使用客户端生成的 `clientMessageId` 去重。
-- Realtime 事件只提示“资源发生变化”，客户端仍以授权后的查询结果为准。
+- WebSocket/推送事件只提示“资源发生变化”，客户端仍以授权后的查询结果为准。
 
 ## 10. 契约变更流程
 

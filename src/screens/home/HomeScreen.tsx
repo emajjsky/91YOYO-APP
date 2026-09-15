@@ -134,7 +134,13 @@ function FeedCard({ item, onLike, onBookmark }: {
       {/* 作者信息行 */}
       <View style={styles.authorRow}>
         <TouchableOpacity>
-          <Image source={{ uri: item.author.avatarUrl }} style={styles.avatar} />
+          {item.author.avatarUrl ? (
+            <Image source={{ uri: item.author.avatarUrl }} style={styles.avatar} />
+          ) : (
+            <View style={[styles.avatar, styles.avatarFallback]}>
+              <Text style={styles.avatarFallbackText}>{item.author.nickname.slice(0, 1).toUpperCase()}</Text>
+            </View>
+          )}
         </TouchableOpacity>
         <View style={styles.authorMeta}>
           <View style={styles.authorNameRow}>
@@ -345,6 +351,8 @@ const styles = StyleSheet.create({
     width: 44, height: 44, borderRadius: 22,
     borderWidth: 1.5, borderColor: '#2a2d33',
   },
+  avatarFallback: { backgroundColor: '#16181c', alignItems: 'center', justifyContent: 'center' },
+  avatarFallbackText: { color: Colors.textSecondary, fontSize: 17, fontWeight: '800' },
   authorMeta: { flex: 1 },
   authorNameRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 },
   nickname: { color: Colors.white, fontSize: 15, fontWeight: '700' },

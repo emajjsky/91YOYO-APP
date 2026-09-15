@@ -22,7 +22,7 @@ export default function ChatScreen() {
       </View>
       <View style={styles.placeholder}>
         <Text style={styles.placeholderText}>💬 私聊界面</Text>
-        <Text style={styles.placeholderSub}>（Phase 4 完整实现 + Supabase Realtime）</Text>
+        <Text style={styles.placeholderSub}>（Phase 4 完整实现 + WebSocket）</Text>
       </View>
     </View>
   );

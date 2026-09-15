@@ -19,7 +19,7 @@
 ## 已确定的决策
 
 1. React Native App 是近期唯一开发主线，小程序暂不继续扩展业务功能。
-2. Supabase 作为第一阶段共享后端，承载 Auth、Postgres、Storage 和 Realtime。
+2. 腾讯云轻量服务器上的 91YOYO API 作为共享后端，使用 PostgreSQL 和腾讯云 COS。
 3. App 与小程序分别实现 UI，只共享账号、数据模型、API 字段语义和测试样例。
 4. 跨端基础登录采用手机验证码；微信快捷登录是后续服务端身份绑定能力。
 5. App MVP 聚焦社区内容和媒体练习体验；担保支付、复杂交易和完整 Jam 生态不进入首个 MVP。

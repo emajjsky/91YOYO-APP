@@ -1,2 +1,0 @@
--- Development seed is intentionally empty.
--- Use Supabase Auth test accounts and create records through the application flow.
