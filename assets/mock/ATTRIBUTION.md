@@ -1,0 +1,29 @@
+# Mock Social Asset Attribution
+
+Downloaded on 2026-09-16 for the local 91YOYO mock experience. The JPEG files were resized for the app bundle without changing their subject matter. CC BY-SA adaptations remain available under the same license as their source works.
+
+## Included Images
+
+| Local file | Work and author | Source | License | Changes |
+| --- | --- | --- | --- | --- |
+| `social/yoyo-blue.jpg` | Blue Yoyo, Broveer | https://commons.wikimedia.org/wiki/File:Blue_Yoyo.jpg | CC BY-SA 4.0, https://creativecommons.org/licenses/by-sa/4.0 | Resized to 1280 px square |
+| `social/yoyo-bearing.jpg` | Yo-yo with bearing inside, Sarah Jones | https://commons.wikimedia.org/wiki/File:Yo-yo_with_bearing_inside.jpg | CC BY-SA 2.0, https://creativecommons.org/licenses/by-sa/2.0 | Wikimedia 1280 px derivative |
+| `social/contest-indiana-01.jpg` | 2008 Indiana State Yo-yo Contest - Tigas 01, Mike Tigas | https://commons.wikimedia.org/wiki/File:2008_Indiana_State_Yo-yo_Contest_-_Tigas_01.jpg | CC BY 2.0, https://creativecommons.org/licenses/by/2.0 | Wikimedia 1280 px derivative |
+| `social/contest-indiana-02.jpg` | 2008 Indiana State Yo-yo Contest - Tigas 02, Mike Tigas | https://commons.wikimedia.org/wiki/File:2008_Indiana_State_Yo-yo_Contest_-_Tigas_02.jpg | CC BY 2.0, https://creativecommons.org/licenses/by/2.0 | Wikimedia 1280 px derivative |
+| `social/practice-hybl.jpg` | Hybl mcr 10, Pavel Klus | https://commons.wikimedia.org/wiki/File:Hybl_mcr_10.jpg | CC BY-SA 3.0, https://creativecommons.org/licenses/by-sa/3.0 | Original 700 px file retained |
+| `social/history-molenaar.jpg` | Dutch yo-yo champion Martin Molenaar in action, Eric Koch / Anefo | https://commons.wikimedia.org/wiki/File:Jojokampioenschap_van_Nederland_in_Amsterdam_kampioen_Martin_Molenaar,_dertien_,_Bestanddeelnr_923-9717.jpg | CC0 1.0, https://creativecommons.org/publicdomain/zero/1.0/ | Wikimedia derivative resized to 900 px wide |
+
+`yoyo-blue.jpg` and `yoyo-bearing.jpg` also serve as neutral fixture avatars. No identifiable-person photo is presented as a fictional user's identity.
+
+## Generated Audio
+
+`track-clean-steps.wav`, `track-speed-combo.wav`, and `track-night-session.wav` were generated in this repository from synthesized tones. They contain no third-party recording or sample and require no external attribution.
+
+## Reserved Video Sources
+
+Video downloads and transcoding are intentionally deferred. Video fixture records use a local static poster as their placeholder URI until the playback asset pipeline replaces it.
+
+| Planned work | Author | Source | License |
+| --- | --- | --- | --- |
+| Yo-yo mode | Polygoon Hollands Nieuws / Nederlands Instituut voor Beeld en Geluid | https://commons.wikimedia.org/wiki/File:Yo-yo_mode.webm | Public domain |
+| WikiTuPret II - Yoyo | Pitchrigi | https://commons.wikimedia.org/wiki/File:WikiTuPr%C3%A8t_II_-_Y%C3%B3y%C3%B3.webm | CC BY-SA 4.0, https://creativecommons.org/licenses/by-sa/4.0 |
