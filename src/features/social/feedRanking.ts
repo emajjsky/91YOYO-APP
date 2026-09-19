@@ -3,6 +3,7 @@ import type { SocialPost, SocialUser, ViewerProfile } from './types';
 
 const FRESHNESS_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 const ENGAGEMENT_SATURATION = 100_000;
+const CANONICAL_ISO_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 
 export interface RankedPost {
   post: SocialPost;
@@ -25,8 +26,12 @@ function clampUnit(value: number): number {
 }
 
 function parseTimestamp(value: string): number | null {
+  if (!CANONICAL_ISO_TIMESTAMP.test(value)) return null;
+
   const timestamp = Date.parse(value);
-  return Number.isFinite(timestamp) ? timestamp : null;
+  if (!Number.isFinite(timestamp)) return null;
+
+  return new Date(timestamp).toISOString() === value ? timestamp : null;
 }
 
 function calculateFreshness(createdAt: string, now: string): number {
@@ -145,9 +150,6 @@ export function selectFollowingPosts(
   viewer: ViewerProfile,
 ): SocialPost[] {
   return posts
-    .filter(
-      (post) =>
-        post.visibility === 'public' && viewer.followedUserIds.includes(post.authorId),
-    )
+    .filter((post) => viewer.followedUserIds.includes(post.authorId))
     .sort(comparePostsByCreatedAtThenId);
 }

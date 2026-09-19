@@ -158,6 +158,7 @@ describe('rankRecommendedPosts', () => {
       post({ id: 'invalid-b', createdAt: 'not-a-date' }),
       post({ id: 'valid', createdAt: '2026-09-14T12:00:00.000Z' }),
       post({ id: 'invalid-a', createdAt: '' }),
+      post({ id: 'invalid-calendar', createdAt: '2026-09-31T12:00:00.000Z' }),
     ];
 
     const first = rankRecommendedPosts({ posts, users, viewer, now: 'invalid-now' });
@@ -168,6 +169,7 @@ describe('rankRecommendedPosts', () => {
       'valid',
       'invalid-a',
       'invalid-b',
+      'invalid-calendar',
     ]);
     expect(second.map(({ post: rankedPost }) => rankedPost.id)).toEqual(
       first.map(({ post: rankedPost }) => rankedPost.id),
@@ -176,7 +178,7 @@ describe('rankRecommendedPosts', () => {
 });
 
 describe('selectFollowingPosts', () => {
-  it('returns only public posts from followed authors in newest-first order', () => {
+  it('returns all posts from followed authors in newest-first order', () => {
     const selected = selectFollowingPosts(
       [
         post({ id: 'followed-older', authorId: 'followed', createdAt: '2026-09-13T12:00:00.000Z' }),
@@ -188,6 +190,7 @@ describe('selectFollowingPosts', () => {
     );
 
     expect(selected.map((selectedPost) => selectedPost.id)).toEqual([
+      'followed-private',
       'followed-newer',
       'followed-older',
     ]);
