@@ -1,5 +1,24 @@
 import type { PostCategoryId, StyleTagType } from '../../constants/categories';
 
+type VideoAssetBase = {
+  id: string;
+  posterUri: number | string;
+  aspectRatio: number;
+  title: string;
+};
+
+type VideoAsset =
+  | (VideoAssetBase & {
+      playbackStatus: 'reserved';
+      uri?: never;
+      durationSeconds: null;
+    })
+  | (VideoAssetBase & {
+      playbackStatus: 'ready';
+      uri: number | string;
+      durationSeconds: number;
+    });
+
 export type MediaContent =
   | { type: 'none' }
   | {
@@ -8,14 +27,7 @@ export type MediaContent =
     }
   | {
       type: 'video';
-      asset: {
-        id: string;
-        uri: number | string;
-        posterUri: number | string;
-        durationSeconds: number;
-        aspectRatio: number;
-        title: string;
-      };
+      asset: VideoAsset;
     }
   | {
       type: 'audio';
