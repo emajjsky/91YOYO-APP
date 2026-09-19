@@ -6,6 +6,7 @@ import {
   persist,
   type StateStorage,
 } from 'zustand/middleware';
+import { POST_CATEGORIES, STYLE_TAGS } from '../../constants/categories';
 import {
   createMockContentRepository,
   type ContentPage,
@@ -64,6 +65,9 @@ export type SocialStore = StoreApi<SocialState> & {
 
 const STORAGE_KEY = '91yoyo-social-state';
 const DEFAULT_ERROR_MESSAGE = '内容加载失败，请稍后重试';
+const CANONICAL_ISO_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+const CATEGORY_IDS = new Set<string>(POST_CATEGORIES.map(({ id }) => id));
+const STYLE_TAG_IDS = new Set<string>(STYLE_TAGS);
 
 function createFeedState(): SocialFeedState {
   return {
@@ -87,14 +91,99 @@ function uniqueStrings(value: unknown, fallback: string[] = []): string[] {
   return [...new Set(value.filter((item): item is string => typeof item === 'string'))];
 }
 
-function isSocialPost(value: unknown): value is SocialPost {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
-  const candidate = value as Partial<SocialPost>;
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isFiniteNonnegative(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0;
+}
+
+function isFinitePositive(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0;
+}
+
+function isAssetUri(value: unknown): value is number | string {
+  return typeof value === 'string' || (typeof value === 'number' && Number.isFinite(value));
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === 'string');
+}
+
+function isCanonicalIsoTimestamp(value: unknown): value is string {
+  if (typeof value !== 'string' || !CANONICAL_ISO_TIMESTAMP.test(value)) return false;
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) && new Date(timestamp).toISOString() === value;
+}
+
+function hasVideoBaseFields(value: Record<string, unknown>): boolean {
   return (
-    typeof candidate.id === 'string' &&
-    typeof candidate.authorId === 'string' &&
-    typeof candidate.content === 'string' &&
-    typeof candidate.likeCount === 'number'
+    typeof value.id === 'string' &&
+    isAssetUri(value.posterUri) &&
+    isFinitePositive(value.aspectRatio) &&
+    typeof value.title === 'string'
+  );
+}
+
+function isMediaContent(value: unknown): value is SocialPost['media'] {
+  if (!isRecord(value) || typeof value.type !== 'string') return false;
+
+  switch (value.type) {
+    case 'none':
+      return true;
+    case 'images':
+      return Array.isArray(value.assets) && value.assets.every((asset) =>
+        isRecord(asset) &&
+        typeof asset.id === 'string' &&
+        isAssetUri(asset.uri) &&
+        isFinitePositive(asset.aspectRatio) &&
+        typeof asset.alt === 'string',
+      );
+    case 'video': {
+      if (!isRecord(value.asset) || !hasVideoBaseFields(value.asset)) return false;
+      if (value.asset.playbackStatus === 'reserved') {
+        return value.asset.durationSeconds === null && !('uri' in value.asset);
+      }
+      if (value.asset.playbackStatus === 'ready') {
+        return isAssetUri(value.asset.uri) && isFiniteNonnegative(value.asset.durationSeconds);
+      }
+      return false;
+    }
+    case 'audio':
+      return (
+        isRecord(value.asset) &&
+        typeof value.asset.id === 'string' &&
+        isAssetUri(value.asset.uri) &&
+        isAssetUri(value.asset.coverUri) &&
+        typeof value.asset.title === 'string' &&
+        typeof value.asset.artist === 'string' &&
+        isFiniteNonnegative(value.asset.bpm) &&
+        isFiniteNonnegative(value.asset.durationSeconds)
+      );
+    default:
+      return false;
+  }
+}
+
+function isSocialPost(value: unknown): value is SocialPost {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value.id === 'string' &&
+    typeof value.authorId === 'string' &&
+    typeof value.content === 'string' &&
+    typeof value.category === 'string' &&
+    CATEGORY_IDS.has(value.category) &&
+    isStringArray(value.styleTags) &&
+    value.styleTags.every((style) => STYLE_TAG_IDS.has(style)) &&
+    isStringArray(value.hashtags) &&
+    isCanonicalIsoTimestamp(value.createdAt) &&
+    isMediaContent(value.media) &&
+    isFiniteNonnegative(value.likeCount) &&
+    isFiniteNonnegative(value.commentCount) &&
+    isFiniteNonnegative(value.shareCount) &&
+    isFiniteNonnegative(value.viewCount) &&
+    (value.visibility === 'public' || value.visibility === 'followers')
   );
 }
 
@@ -117,6 +206,45 @@ function sanitizePersistedState(value: unknown): PersistedSocialState {
     bookmarkedPostIds: uniqueStrings(candidate.bookmarkedPostIds),
     followedUserIds: uniqueStrings(candidate.followedUserIds, currentViewer.followedUserIds),
     createdPostsById: sanitizeCreatedPosts(candidate.createdPostsById),
+  };
+}
+
+function sameIds(left: string[], right: string[]): boolean {
+  return left.length === right.length && left.every((id) => right.includes(id));
+}
+
+function isDefaultPersistedValue(value: string): boolean {
+  try {
+    const parsed = JSON.parse(value) as { state?: unknown };
+    const state = sanitizePersistedState(parsed.state);
+    return (
+      state.likedPostIds.length === 0 &&
+      state.bookmarkedPostIds.length === 0 &&
+      sameIds(state.followedUserIds, currentViewer.followedUserIds) &&
+      Object.keys(state.createdPostsById).length === 0
+    );
+  } catch {
+    return false;
+  }
+}
+
+function createEpochStorage(storage: StateStorage): StateStorage {
+  let epoch = 0;
+
+  return {
+    async getItem(name) {
+      const readEpoch = epoch;
+      const value = await storage.getItem(name);
+      return readEpoch === epoch ? value : null;
+    },
+    setItem(name, value) {
+      if (isDefaultPersistedValue(value)) return storage.removeItem(name);
+      return storage.setItem(name, value);
+    },
+    removeItem(name) {
+      epoch += 1;
+      return storage.removeItem(name);
+    },
   };
 }
 
@@ -175,6 +303,8 @@ export function createSocialStore(
   repository: ContentRepository,
   storage: StateStorage,
 ): SocialStore {
+  let lifecycleEpoch = 0;
+  let initialHydration: Promise<void> = Promise.resolve();
   const requestVersions: Record<FeedMode, number> = { recommended: 0, following: 0 };
   const activeRequests: Record<FeedMode, { kind: 'initial' | 'refresh' | 'more'; promise: Promise<void> } | null> = {
     recommended: null,
@@ -188,18 +318,24 @@ export function createSocialStore(
           mode: FeedMode,
           kind: 'initial' | 'refresh' | 'more',
         ): Promise<void> => {
-          const currentFeed = get().feeds[mode];
           const activeRequest = activeRequests[mode];
 
           if (activeRequest && activeRequest.kind === kind) return activeRequest.promise;
           if (kind === 'initial' && activeRequest) return activeRequest.promise;
-          if (kind === 'more' && (activeRequest || !currentFeed.hasMore || !currentFeed.nextCursor)) {
+          if (kind === 'more' && activeRequest) {
             return Promise.resolve();
           }
 
           const version = ++requestVersions[mode];
-          const cursor = kind === 'more' ? currentFeed.nextCursor : null;
+          const requestEpoch = lifecycleEpoch;
           const promise = (async () => {
+            await initialHydration;
+            if (requestEpoch !== lifecycleEpoch || version !== requestVersions[mode]) return;
+
+            const currentFeed = get().feeds[mode];
+            if (kind === 'more' && (!currentFeed.hasMore || !currentFeed.nextCursor)) return;
+            const cursor = kind === 'more' ? currentFeed.nextCursor : null;
+
             set((state) => ({
               feeds: {
                 ...state.feeds,
@@ -320,6 +456,7 @@ export function createSocialStore(
           }),
 
           resetDemoData: async () => {
+            lifecycleEpoch += 1;
             requestVersions.recommended += 1;
             requestVersions.following += 1;
             activeRequests.recommended = null;
@@ -342,7 +479,8 @@ export function createSocialStore(
       {
         name: STORAGE_KEY,
         version: 1,
-        storage: createJSONStorage(() => storage),
+        storage: createJSONStorage(() => createEpochStorage(storage)),
+        skipHydration: true,
         partialize: (state): PersistedSocialState => ({
           likedPostIds: state.likedPostIds,
           bookmarkedPostIds: state.bookmarkedPostIds,
@@ -375,6 +513,8 @@ export function createSocialStore(
       },
     ),
   );
+
+  initialHydration = Promise.resolve(store.persist.rehydrate()).then(() => undefined);
 
   return store as SocialStore;
 }

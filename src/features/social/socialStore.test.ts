@@ -96,6 +96,38 @@ function createMemoryStorage(initial: Record<string, string> = {}) {
   return { storage, values };
 }
 
+function createDeferredReadStorage(storedValue: string | null) {
+  const read = deferred<string | null>();
+  const values = new Map<string, string>();
+  const storage: StateStorage = {
+    getItem: () => read.promise,
+    setItem: (name, value) => {
+      values.set(name, value);
+    },
+    removeItem: (name) => {
+      values.delete(name);
+    },
+  };
+
+  return {
+    storage,
+    values,
+    resolveRead: () => read.resolve(storedValue),
+  };
+}
+
+function persistedState(state: Record<string, unknown>): string {
+  return JSON.stringify({ state, version: 1 });
+}
+
+async function waitForAutomaticHydration(store: ReturnType<typeof createSocialStore>) {
+  for (let attempt = 0; attempt < 20 && !store.persist.hasHydrated(); attempt += 1) {
+    await Promise.resolve();
+  }
+
+  expect(store.persist.hasHydrated()).toBe(true);
+}
+
 type PageKey = `${FeedMode}:${string}`;
 
 function createZeroLatencyRepository(pages: Partial<Record<PageKey, ContentPage>>) {
@@ -127,6 +159,61 @@ function deferred<T>() {
 }
 
 describe('socialStore', () => {
+  it('hydrates interactions before zero-latency feeds commit derived state', async () => {
+    const likedPost = post('post-music-speed-combo');
+    const unfollowedPost = post('post-contest-final-runthrough');
+    const followedPost = post('post-tutorial-5a-direction-change');
+    const storage = createDeferredReadStorage(persistedState({
+      likedPostIds: [likedPost.id],
+      bookmarkedPostIds: [],
+      followedUserIds: [followedPost.authorId],
+      createdPostsById: {},
+    }));
+    const { repository, requests } = createZeroLatencyRepository({
+      'recommended:first': page([likedPost]),
+      'following:first': page([unfollowedPost, followedPost]),
+    });
+    const store = createSocialStore(repository, storage.storage);
+
+    const recommendedLoad = store.getState().loadFeed('recommended');
+    const followingLoad = store.getState().loadFeed('following');
+    expect(requests).toEqual([]);
+
+    storage.resolveRead();
+    await Promise.all([recommendedLoad, followingLoad]);
+
+    expect(store.getState().postsById[likedPost.id].likeCount).toBe(likedPost.likeCount + 1);
+    expect(store.getState().feeds.following.ids).toEqual([followedPost.id]);
+
+    await store.getState().loadFeed('recommended', true);
+    expect(store.getState().postsById[likedPost.id].likeCount).toBe(likedPost.likeCount + 1);
+  });
+
+  it('does not restore a stale hydration read after reset', async () => {
+    const fixturePost = post('post-music-speed-combo');
+    const storage = createDeferredReadStorage(persistedState({
+      likedPostIds: [fixturePost.id],
+      bookmarkedPostIds: [fixturePost.id],
+      followedUserIds: ['user-leo'],
+      createdPostsById: {},
+    }));
+    const { repository } = createZeroLatencyRepository({
+      'recommended:first': page([fixturePost]),
+    });
+    const store = createSocialStore(repository, storage.storage);
+
+    const reset = store.getState().resetDemoData();
+    storage.resolveRead();
+    await reset;
+    await store.getState().loadFeed('recommended');
+
+    expect(store.getState().likedPostIds).toEqual([]);
+    expect(store.getState().bookmarkedPostIds).toEqual([]);
+    expect(store.getState().followedUserIds).toEqual(currentViewer.followedUserIds);
+    expect(store.getState().postsById[fixturePost.id].likeCount).toBe(fixturePost.likeCount);
+    expect(storage.values.has(STORAGE_KEY)).toBe(false);
+  });
+
   it('keeps feed pages and request state separate while normalizing records', async () => {
     const recommendedPost = post('post-music-speed-combo');
     const followingPost = post('post-contest-final-runthrough');
@@ -247,7 +334,7 @@ describe('socialStore', () => {
     firstStore.getState().toggleFollow('user-leo');
 
     const restoredStore = createSocialStore(repository, memory.storage);
-    await restoredStore.persist.rehydrate();
+    await waitForAutomaticHydration(restoredStore);
 
     expect(restoredStore.getState().likedPostIds).toEqual([likedPost.id]);
     expect(restoredStore.getState().bookmarkedPostIds).toEqual([likedPost.id]);
@@ -296,7 +383,7 @@ describe('socialStore', () => {
     });
 
     const restoredStore = createSocialStore(repository, memory.storage);
-    await restoredStore.persist.rehydrate();
+    await waitForAutomaticHydration(restoredStore);
 
     expect(restoredStore.getState().createdPostsById).toEqual({
       [createdPost.id]: createdPost,
@@ -325,13 +412,115 @@ describe('socialStore', () => {
       'recommended:first': page([likedPost]),
     });
     const store = createSocialStore(repository, memory.storage);
-    await store.persist.rehydrate();
+    await waitForAutomaticHydration(store);
 
     expect(store.getState().likedPostIds).toEqual([likedPost.id]);
     expect(store.getState().bookmarkedPostIds).toEqual([]);
     expect(store.getState().followedUserIds).toEqual(['user-chen', 'user-xiaoyu']);
     expect(store.getState().feeds.recommended.ids).toEqual([]);
     expect(store.getState().postsById).toEqual({});
+  });
+
+  it('restores only created posts that satisfy the complete SocialPost contract', async () => {
+    const validPost = { ...post('post-daily-first-metal-yoyo'), id: 'created-valid' };
+    const { media: _missingMedia, ...missingMedia } = {
+      ...validPost,
+      id: 'created-missing-media',
+    };
+    const malformedImages = {
+      ...validPost,
+      id: 'created-bad-images',
+      media: {
+        type: 'images',
+        assets: [{ id: 'image-1', uri: {}, aspectRatio: 'wide', alt: 4 }],
+      },
+    };
+    const malformedReservedVideo = {
+      ...validPost,
+      id: 'created-bad-reserved-video',
+      media: {
+        type: 'video',
+        asset: {
+          id: 'video-1',
+          playbackStatus: 'reserved',
+          uri: 'unexpected.mp4',
+          posterUri: 'poster.jpg',
+          durationSeconds: 12,
+          aspectRatio: 1.5,
+          title: 'Reserved video',
+        },
+      },
+    };
+    const malformedReadyVideo = {
+      ...validPost,
+      id: 'created-bad-ready-video',
+      media: {
+        type: 'video',
+        asset: {
+          id: 'video-2',
+          playbackStatus: 'ready',
+          posterUri: 'poster.jpg',
+          durationSeconds: null,
+          aspectRatio: 1.5,
+          title: 'Ready video',
+        },
+      },
+    };
+    const malformedAudio = {
+      ...validPost,
+      id: 'created-bad-audio',
+      media: {
+        type: 'audio',
+        asset: {
+          id: 'audio-1',
+          uri: 'audio.wav',
+          coverUri: 'cover.jpg',
+          title: 'Audio',
+          artist: 'Artist',
+          bpm: -1,
+          durationSeconds: 12,
+        },
+      },
+    };
+    const malformedDomainFields = {
+      ...validPost,
+      id: 'created-bad-domain',
+      category: 'unknown',
+      styleTags: ['6A'],
+      hashtags: ['#valid', 7],
+      createdAt: 'yesterday',
+      likeCount: Number.POSITIVE_INFINITY,
+      commentCount: -1,
+      visibility: 'friends',
+    };
+    const keyMismatch = { ...validPost, id: 'different-id' };
+    const memory = createMemoryStorage({
+      [STORAGE_KEY]: persistedState({
+        likedPostIds: [],
+        bookmarkedPostIds: [],
+        followedUserIds: currentViewer.followedUserIds,
+        createdPostsById: {
+          [validPost.id]: validPost,
+          [missingMedia.id]: missingMedia,
+          [malformedImages.id]: malformedImages,
+          [malformedReservedVideo.id]: malformedReservedVideo,
+          [malformedReadyVideo.id]: malformedReadyVideo,
+          [malformedAudio.id]: malformedAudio,
+          [malformedDomainFields.id]: malformedDomainFields,
+          'created-key-mismatch': keyMismatch,
+        },
+      }),
+    });
+    const { repository } = createZeroLatencyRepository({});
+    const store = createSocialStore(repository, memory.storage);
+    await waitForAutomaticHydration(store);
+
+    expect(store.getState().createdPostsById).toEqual({
+      [validPost.id]: validPost,
+    });
+    expect(store.getState().postsById).toEqual({
+      [validPost.id]: validPost,
+    });
   });
 
   it('ignores a stale load-more response after a refresh completes', async () => {
