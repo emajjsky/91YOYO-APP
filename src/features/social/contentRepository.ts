@@ -6,7 +6,7 @@ import {
 import { currentViewer } from './mockProfiles';
 import { mockPosts } from './mockPosts';
 import { mockUsers } from './mockUsers';
-import type { SocialPost } from './types';
+import type { MediaContent, SocialPost } from './types';
 
 const DEFAULT_LATENCY_MS = 180;
 const DEFAULT_PAGE_LIMIT = 10;
@@ -16,6 +16,44 @@ const CURSOR_PATTERN = /^mock:(0|[1-9]\d*)$/;
 const INVALID_CURSOR_ERROR = '内容游标无效';
 const INVALID_LIMIT_ERROR = '内容分页数量无效';
 const REQUEST_FAILURE_ERROR = '模拟内容请求失败';
+
+function cloneMedia(media: MediaContent): MediaContent {
+  switch (media.type) {
+    case 'none':
+      return { type: 'none' };
+    case 'images':
+      return {
+        type: 'images',
+        assets: media.assets.map((asset) => ({ ...asset })),
+      };
+    case 'video':
+      return {
+        type: 'video',
+        asset: { ...media.asset },
+      };
+    case 'audio':
+      return {
+        type: 'audio',
+        asset: { ...media.asset },
+      };
+  }
+}
+
+function clonePost(post: SocialPost): SocialPost {
+  return {
+    ...post,
+    styleTags: [...post.styleTags],
+    hashtags: [...post.hashtags],
+    media: cloneMedia(post.media),
+  };
+}
+
+function cloneRankedPost(rankedPost: RankedPost): RankedPost {
+  return {
+    ...rankedPost,
+    post: clonePost(rankedPost.post),
+  };
+}
 
 export type FeedMode = 'recommended' | 'following';
 
@@ -101,7 +139,7 @@ export function createMockContentRepository(options?: {
       const hasMore = endOffset < rankedPosts.length;
 
       return {
-        items: rankedPosts.slice(offset, endOffset),
+        items: rankedPosts.slice(offset, endOffset).map(cloneRankedPost),
         nextCursor: hasMore ? `mock:${endOffset}` : null,
         hasMore,
       };
@@ -109,7 +147,8 @@ export function createMockContentRepository(options?: {
 
     async getPost(postId: string): Promise<SocialPost | null> {
       await waitForRequest();
-      return mockPosts.find((post) => post.id === postId) ?? null;
+      const post = mockPosts.find((candidate) => candidate.id === postId);
+      return post ? clonePost(post) : null;
     },
   };
 }
