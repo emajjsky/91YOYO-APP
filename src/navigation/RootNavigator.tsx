@@ -7,9 +7,7 @@ import ChatScreen from '../screens/chat/ChatScreen';
 import JamScreen from '../screens/jam/JamScreen';
 import UserProfileScreen from '../screens/profile/UserProfileScreen';
 import PostDetailScreen from '../screens/post/PostDetailScreen';
-import SetupRequiredScreen from '../screens/auth/SetupRequiredScreen';
 import AccountSettingsScreen from '../screens/profile/AccountSettingsScreen';
-import { getApiConfig } from '../services/api/config';
 
 export type RootStackParamList = {
   MainTabs: undefined;
@@ -24,8 +22,6 @@ export type RootStackParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function RootNavigator() {
-  if (!getApiConfig()) return <SetupRequiredScreen />;
-
   return (
     <NavigationContainer>
       <Stack.Navigator
