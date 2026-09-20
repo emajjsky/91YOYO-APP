@@ -1,6 +1,6 @@
 # 91YOYO App 测试策略
 
-版本：v0.1
+版本：v0.2
 
 ## 1. 目标
 
@@ -16,7 +16,14 @@
 
 ### 单元测试
 
-计划采用 Jest + React Native Testing Library，覆盖：
+当前使用 Vitest；后续引入 React Native Testing Library。现有自动化覆盖：
+
+- Social fixtures 的引用完整性、稳定 ID、媒体类型和素材约束。
+- 推荐流权重、边界归一化、推荐理由和确定性排序。
+- Mock Repository 的游标、分页、延迟、一次性故障与数据隔离。
+- Social Store 的双流隔离、并发竞态、hydration、reset、损坏数据防护和互动持久化。
+
+后续组件与服务测试覆盖：
 
 - DTO 与数据库行转换。
 - Feed cursor、筛选参数和错误码映射。
@@ -34,7 +41,20 @@
 - 点赞/收藏快速连点后 UI 与服务端最终状态一致。
 - 拉黑后对方帖子和私信入口消失，直接访问也返回无权限。
 
-网络响应使用固定 JSON fixtures；同一 fixtures 也供小程序 adapter 契约测试使用。
+网络响应使用固定 JSON fixtures；同一 fixtures 也供后续小程序 adapter 契约测试使用。
+
+### 本地 Mock 首页回归
+
+当前首页阶段每次改动至少执行：
+
+```bash
+npm test
+npx tsc --noEmit
+npx expo export --platform ios --output-dir /tmp/91yoyo-foundation-home
+git diff --check
+```
+
+并在 iPhone 17 Pro 模拟器验证：推荐流渲染 → 点赞与收藏 → 切换关注流 → 返回推荐流确认互动状态和滚动位置 → 下拉刷新 → 分页 → 打开详情并返回。截图检查文字截断、媒体空白、按钮重叠、错误覆盖层和加载态停滞。
 
 ### 数据库与 API 权限测试
 
