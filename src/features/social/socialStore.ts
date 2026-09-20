@@ -13,9 +13,10 @@ import {
   type ContentRepository,
   type FeedMode,
 } from './contentRepository';
+import { mockComments } from './mockComments';
 import { currentViewer } from './mockProfiles';
 import { mockUsers } from './mockUsers';
-import type { SocialPost, SocialUser } from './types';
+import type { SocialComment, SocialPost, SocialUser } from './types';
 
 export type FeedLoadState =
   | 'idle'
@@ -42,17 +43,28 @@ export interface SocialState {
   bookmarkedPostIds: string[];
   followedUserIds: string[];
   createdPostsById: Record<string, SocialPost>;
+  commentsById: Record<string, SocialComment>;
+  likedCommentIds: string[];
+  createdCommentsById: Record<string, SocialComment>;
   loadFeed(mode: FeedMode, refresh?: boolean): Promise<void>;
   loadMore(mode: FeedMode): Promise<void>;
+  loadPost(postId: string): Promise<void>;
   toggleLike(postId: string): void;
   toggleBookmark(postId: string): void;
   toggleFollow(userId: string): void;
+  addComment(postId: string, body: string): SocialComment | null;
+  toggleCommentLike(commentId: string): void;
   resetDemoData(): Promise<void>;
 }
 
 type PersistedSocialState = Pick<
   SocialState,
-  'likedPostIds' | 'bookmarkedPostIds' | 'followedUserIds' | 'createdPostsById'
+  | 'likedPostIds'
+  | 'bookmarkedPostIds'
+  | 'followedUserIds'
+  | 'createdPostsById'
+  | 'likedCommentIds'
+  | 'createdCommentsById'
 >;
 
 export type SocialStore = StoreApi<SocialState> & {
@@ -68,6 +80,7 @@ const DEFAULT_ERROR_MESSAGE = '内容加载失败，请稍后重试';
 const CANONICAL_ISO_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 const CATEGORY_IDS = new Set<string>(POST_CATEGORIES.map(({ id }) => id));
 const STYLE_TAG_IDS = new Set<string>(STYLE_TAGS);
+const COMMENT_BODY_LIMIT = 280;
 
 function createFeedState(): SocialFeedState {
   return {
@@ -198,6 +211,43 @@ function sanitizeCreatedPosts(value: unknown): Record<string, SocialPost> {
   );
 }
 
+function isSocialComment(value: unknown): value is SocialComment {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value.id === 'string' &&
+    typeof value.postId === 'string' &&
+    typeof value.authorId === 'string' &&
+    typeof value.body === 'string' &&
+    value.body.trim().length > 0 &&
+    value.body.length <= COMMENT_BODY_LIMIT &&
+    isCanonicalIsoTimestamp(value.createdAt) &&
+    isFiniteNonnegative(value.likeCount)
+  );
+}
+
+function sanitizeCreatedComments(value: unknown): Record<string, SocialComment> {
+  if (!isRecord(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value).filter(
+      (entry): entry is [string, SocialComment] =>
+        isSocialComment(entry[1]) && entry[0] === entry[1].id,
+    ),
+  );
+}
+
+function commentRecords(likedCommentIds: string[] = []): Record<string, SocialComment> {
+  const likedIds = new Set(likedCommentIds);
+  return Object.fromEntries(
+    mockComments.map((comment) => [
+      comment.id,
+      {
+        ...comment,
+        likeCount: comment.likeCount + (likedIds.has(comment.id) ? 1 : 0),
+      },
+    ]),
+  );
+}
+
 function sanitizePersistedState(value: unknown): PersistedSocialState {
   const candidate = value && typeof value === 'object' ? value as Record<string, unknown> : {};
 
@@ -206,6 +256,8 @@ function sanitizePersistedState(value: unknown): PersistedSocialState {
     bookmarkedPostIds: uniqueStrings(candidate.bookmarkedPostIds),
     followedUserIds: uniqueStrings(candidate.followedUserIds, currentViewer.followedUserIds),
     createdPostsById: sanitizeCreatedPosts(candidate.createdPostsById),
+    likedCommentIds: uniqueStrings(candidate.likedCommentIds),
+    createdCommentsById: sanitizeCreatedComments(candidate.createdCommentsById),
   };
 }
 
@@ -221,7 +273,9 @@ function isDefaultPersistedValue(value: string): boolean {
       state.likedPostIds.length === 0 &&
       state.bookmarkedPostIds.length === 0 &&
       sameIds(state.followedUserIds, currentViewer.followedUserIds) &&
-      Object.keys(state.createdPostsById).length === 0
+      Object.keys(state.createdPostsById).length === 0 &&
+      state.likedCommentIds.length === 0 &&
+      Object.keys(state.createdCommentsById).length === 0
     );
   } catch {
     return false;
@@ -268,9 +322,30 @@ function userRecordsFor(page: ContentPage): Record<string, SocialUser> {
   );
 }
 
+function userRecordsForIds(userIds: Iterable<string>): Record<string, SocialUser> {
+  const ids = new Set(userIds);
+  return Object.fromEntries(
+    mockUsers.filter((user) => ids.has(user.id)).map((user) => [user.id, user]),
+  );
+}
+
+function fixtureCommentAuthorIds(postId: string): string[] {
+  return mockComments
+    .filter((comment) => comment.postId === postId)
+    .map((comment) => comment.authorId);
+}
+
+function createdCommentCountForPost(
+  comments: Record<string, SocialComment>,
+  postId: string,
+): number {
+  return Object.values(comments).filter((comment) => comment.postId === postId).length;
+}
+
 function normalizePage(
   page: ContentPage,
   likedPostIds: string[],
+  createdCommentsById: Record<string, SocialComment>,
 ): {
   ids: string[];
   postsById: Record<string, SocialPost>;
@@ -287,6 +362,7 @@ function normalizePage(
     postsById[item.post.id] = {
       ...item.post,
       likeCount: Math.max(0, item.post.likeCount + (likedIds.has(item.post.id) ? 1 : 0)),
+      commentCount: item.post.commentCount + createdCommentCountForPost(createdCommentsById, item.post.id),
     };
     reasonsByPostId[item.post.id] = item.reason;
   }
@@ -302,8 +378,10 @@ function normalizePage(
 export function createSocialStore(
   repository: ContentRepository,
   storage: StateStorage,
+  now: () => Date = () => new Date(),
 ): SocialStore {
   let lifecycleEpoch = 0;
+  let commentSequence = 0;
   let initialHydration: Promise<void> = Promise.resolve();
   const requestVersions: Record<FeedMode, number> = { recommended: 0, following: 0 };
   const activeRequests: Record<FeedMode, { kind: 'initial' | 'refresh' | 'more'; promise: Promise<void> } | null> = {
@@ -352,7 +430,7 @@ export function createSocialStore(
               if (version !== requestVersions[mode]) return;
 
               set((state) => {
-                const normalized = normalizePage(page, state.likedPostIds);
+                const normalized = normalizePage(page, state.likedPostIds, state.createdCommentsById);
                 const visibleIds = mode === 'following'
                   ? normalized.ids.filter((postId) =>
                       state.followedUserIds.includes(normalized.postsById[postId].authorId),
@@ -411,9 +489,39 @@ export function createSocialStore(
           bookmarkedPostIds: [],
           followedUserIds: [...currentViewer.followedUserIds],
           createdPostsById: {},
+          commentsById: commentRecords(),
+          likedCommentIds: [],
+          createdCommentsById: {},
 
           loadFeed: (mode, refresh = false) => fetchFeed(mode, refresh ? 'refresh' : 'initial'),
           loadMore: (mode) => fetchFeed(mode, 'more'),
+
+          loadPost: async (postId) => {
+            await initialHydration;
+            const requestEpoch = lifecycleEpoch;
+            const loadedPost = get().postsById[postId] ?? await repository.getPost(postId);
+            if (!loadedPost || requestEpoch !== lifecycleEpoch) return;
+
+            set((state) => ({
+              postsById: state.postsById[postId]
+                ? state.postsById
+                : {
+                    ...state.postsById,
+                    [postId]: {
+                      ...loadedPost,
+                      likeCount: loadedPost.likeCount + (state.likedPostIds.includes(postId) ? 1 : 0),
+                      commentCount: loadedPost.commentCount + createdCommentCountForPost(
+                        state.createdCommentsById,
+                        postId,
+                      ),
+                    },
+                  },
+              usersById: {
+                ...state.usersById,
+                ...userRecordsForIds([loadedPost.authorId, ...fixtureCommentAuthorIds(postId)]),
+              },
+            }));
+          },
 
           toggleLike: (postId) => set((state) => {
             const wasLiked = state.likedPostIds.includes(postId);
@@ -455,6 +563,66 @@ export function createSocialStore(
             };
           }),
 
+          addComment: (postId, value) => {
+            const body = value.trim();
+            const post = get().postsById[postId];
+            if (!post || body.length === 0 || body.length > COMMENT_BODY_LIMIT) return null;
+
+            const createdAt = now().toISOString();
+            let id: string;
+            do {
+              commentSequence += 1;
+              id = `comment-local-${Date.parse(createdAt)}-${commentSequence}`;
+            } while (get().commentsById[id]);
+
+            const created: SocialComment = {
+              id,
+              postId,
+              authorId: currentViewer.userId,
+              body,
+              createdAt,
+              likeCount: 0,
+            };
+
+            set((state) => {
+              const updatedPost = {
+                ...state.postsById[postId],
+                commentCount: state.postsById[postId].commentCount + 1,
+              };
+              return {
+                commentsById: { ...state.commentsById, [id]: created },
+                createdCommentsById: { ...state.createdCommentsById, [id]: created },
+                postsById: { ...state.postsById, [postId]: updatedPost },
+                createdPostsById: state.createdPostsById[postId]
+                  ? { ...state.createdPostsById, [postId]: updatedPost }
+                  : state.createdPostsById,
+                usersById: {
+                  ...state.usersById,
+                  ...userRecordsForIds([currentViewer.userId]),
+                },
+              };
+            });
+
+            return created;
+          },
+
+          toggleCommentLike: (commentId) => set((state) => {
+            const loadedComment = state.commentsById[commentId];
+            if (!loadedComment) return state;
+            const wasLiked = state.likedCommentIds.includes(commentId);
+            const updatedComment = {
+              ...loadedComment,
+              likeCount: Math.max(0, loadedComment.likeCount + (wasLiked ? -1 : 1)),
+            };
+            return {
+              likedCommentIds: toggleId(state.likedCommentIds, commentId),
+              commentsById: { ...state.commentsById, [commentId]: updatedComment },
+              createdCommentsById: state.createdCommentsById[commentId]
+                ? { ...state.createdCommentsById, [commentId]: updatedComment }
+                : state.createdCommentsById,
+            };
+          }),
+
           resetDemoData: async () => {
             lifecycleEpoch += 1;
             requestVersions.recommended += 1;
@@ -471,6 +639,9 @@ export function createSocialStore(
               bookmarkedPostIds: [],
               followedUserIds: [...currentViewer.followedUserIds],
               createdPostsById: {},
+              commentsById: commentRecords(),
+              likedCommentIds: [],
+              createdCommentsById: {},
             });
             await store.persist.clearStorage();
           },
@@ -486,11 +657,16 @@ export function createSocialStore(
           bookmarkedPostIds: state.bookmarkedPostIds,
           followedUserIds: state.followedUserIds,
           createdPostsById: state.createdPostsById,
+          likedCommentIds: state.likedCommentIds,
+          createdCommentsById: state.createdCommentsById,
         }),
         merge: (persistedState, currentState) => {
           const persisted = sanitizePersistedState(persistedState);
           const createdAuthors = new Set(
-            Object.values(persisted.createdPostsById).map((post) => post.authorId),
+            [
+              ...Object.values(persisted.createdPostsById).map((post) => post.authorId),
+              ...Object.values(persisted.createdCommentsById).map((comment) => comment.authorId),
+            ],
           );
 
           return {
@@ -499,6 +675,10 @@ export function createSocialStore(
             postsById: {
               ...currentState.postsById,
               ...persisted.createdPostsById,
+            },
+            commentsById: {
+              ...commentRecords(persisted.likedCommentIds),
+              ...persisted.createdCommentsById,
             },
             usersById: {
               ...currentState.usersById,

@@ -8,7 +8,7 @@ import type {
   FeedMode,
 } from './contentRepository';
 import { currentViewer } from './mockProfiles';
-import type { SocialPost } from './types';
+import type { SocialComment, SocialPost } from './types';
 
 const STORAGE_KEY = '91yoyo-social-state';
 const runtimeRequire = createRequire(import.meta.url);
@@ -63,6 +63,17 @@ function post(postId: string): SocialPost {
     shareCount: 1,
     viewCount: 100,
     visibility: 'public',
+  };
+}
+
+function comment(commentId: string, postId = 'post-contest-final-runthrough'): SocialComment {
+  return {
+    id: commentId,
+    postId,
+    authorId: currentViewer.userId,
+    body: `Comment ${commentId}`,
+    createdAt: '2026-09-20T12:00:00.000Z',
+    likeCount: 0,
   };
 }
 
@@ -390,11 +401,108 @@ describe('socialStore', () => {
 
     expect(Object.keys(persisted.state ?? {}).sort()).toEqual([
       'bookmarkedPostIds',
+      'createdCommentsById',
       'createdPostsById',
       'followedUserIds',
+      'likedCommentIds',
       'likedPostIds',
     ]);
     expect(persisted.state?.createdPostsById).toEqual({ [createdPost.id]: createdPost });
+  });
+
+  it('loads a direct post by id without changing feed pagination', async () => {
+    const directPost = post('post-contest-final-runthrough');
+    const repository: ContentRepository = {
+      async getFeed() {
+        throw new Error('feed should not load');
+      },
+      async getPost(postId) {
+        return postId === directPost.id ? directPost : null;
+      },
+    };
+    const store = createSocialStore(repository, createMemoryStorage().storage);
+
+    await store.getState().loadPost(directPost.id);
+
+    expect(store.getState().postsById[directPost.id]).toEqual(directPost);
+    expect(store.getState().usersById[directPost.authorId]?.id).toBe(directPost.authorId);
+    expect(store.getState().feeds.recommended.ids).toEqual([]);
+  });
+
+  it('adds a trimmed comment and updates the normalized post count', async () => {
+    const targetPost = post('post-contest-final-runthrough');
+    const { repository } = createZeroLatencyRepository({
+      'recommended:first': page([targetPost]),
+    });
+    const store = createSocialStore(
+      repository,
+      createMemoryStorage().storage,
+      () => new Date('2026-09-20T12:30:00.000Z'),
+    );
+    await store.getState().loadFeed('recommended');
+
+    const created = store.getState().addComment(targetPost.id, '  动作很干净  ');
+
+    expect(created).toMatchObject({
+      postId: targetPost.id,
+      authorId: currentViewer.userId,
+      body: '动作很干净',
+      createdAt: '2026-09-20T12:30:00.000Z',
+      likeCount: 0,
+    });
+    expect(store.getState().commentsById[created?.id ?? '']).toEqual(created);
+    expect(store.getState().createdCommentsById[created?.id ?? '']).toEqual(created);
+    expect(store.getState().postsById[targetPost.id].commentCount).toBe(targetPost.commentCount + 1);
+    expect(store.getState().addComment(targetPost.id, '   ')).toBeNull();
+    expect(store.getState().addComment(targetPost.id, 'a'.repeat(281))).toBeNull();
+  });
+
+  it('toggles comment likes and keeps created comments synchronized', () => {
+    const created = comment('created-comment');
+    const { repository } = createZeroLatencyRepository({});
+    const store = createSocialStore(repository, createMemoryStorage().storage);
+    store.setState((state) => ({
+      commentsById: { ...state.commentsById, [created.id]: created },
+      createdCommentsById: { [created.id]: created },
+    }));
+
+    store.getState().toggleCommentLike(created.id);
+    expect(store.getState().commentsById[created.id].likeCount).toBe(1);
+    expect(store.getState().createdCommentsById[created.id].likeCount).toBe(1);
+    expect(store.getState().likedCommentIds).toEqual([created.id]);
+
+    store.getState().toggleCommentLike(created.id);
+    expect(store.getState().commentsById[created.id].likeCount).toBe(0);
+    expect(store.getState().likedCommentIds).toEqual([]);
+  });
+
+  it('rehydrates created comments and comment likes', async () => {
+    const targetPost = post('post-contest-final-runthrough');
+    const fixtureCommentId = 'comment-001';
+    const { repository } = createZeroLatencyRepository({
+      'recommended:first': page([targetPost]),
+    });
+    const memory = createMemoryStorage();
+    const firstStore = createSocialStore(
+      repository,
+      memory.storage,
+      () => new Date('2026-09-20T12:45:00.000Z'),
+    );
+    await firstStore.getState().loadFeed('recommended');
+    const created = firstStore.getState().addComment(targetPost.id, '本地评论');
+    firstStore.getState().toggleCommentLike(fixtureCommentId);
+
+    const restoredStore = createSocialStore(repository, memory.storage);
+    await waitForAutomaticHydration(restoredStore);
+
+    expect(restoredStore.getState().createdCommentsById[created?.id ?? '']).toEqual(created);
+    expect(restoredStore.getState().commentsById[created?.id ?? '']).toEqual(created);
+    expect(restoredStore.getState().likedCommentIds).toContain(fixtureCommentId);
+    expect(restoredStore.getState().commentsById[fixtureCommentId].likeCount).toBe(39);
+    await restoredStore.getState().loadFeed('recommended');
+    expect(restoredStore.getState().postsById[targetPost.id].commentCount).toBe(
+      targetPost.commentCount + 1,
+    );
   });
 
   it('restores user-created posts into the normalized post records', async () => {
@@ -426,6 +534,11 @@ describe('socialStore', () => {
           likedPostIds: [likedPost.id, 7, likedPost.id, null],
           bookmarkedPostIds: 'invalid',
           followedUserIds: ['user-chen', 'user-chen', {}, 'user-xiaoyu'],
+          likedCommentIds: ['comment-001', 7, 'comment-001'],
+          createdCommentsById: {
+            valid: comment('valid'),
+            invalid: { ...comment('invalid'), body: '' },
+          },
           createdPostsById: [],
           feeds: { recommended: { ids: ['poisoned'] } },
           postsById: { poisoned: likedPost },
@@ -442,6 +555,8 @@ describe('socialStore', () => {
     expect(store.getState().likedPostIds).toEqual([likedPost.id]);
     expect(store.getState().bookmarkedPostIds).toEqual([]);
     expect(store.getState().followedUserIds).toEqual(['user-chen', 'user-xiaoyu']);
+    expect(store.getState().likedCommentIds).toEqual(['comment-001']);
+    expect(store.getState().createdCommentsById).toEqual({ valid: comment('valid') });
     expect(store.getState().feeds.recommended.ids).toEqual([]);
     expect(store.getState().postsById).toEqual({});
   });
@@ -644,12 +759,17 @@ describe('socialStore', () => {
     store.getState().toggleLike(fixturePost.id);
     store.getState().toggleBookmark(fixturePost.id);
     store.getState().toggleFollow('user-leo');
+    const created = store.getState().addComment(fixturePost.id, '待重置评论');
+    store.getState().toggleCommentLike('comment-001');
 
     await store.getState().resetDemoData();
 
     expect(store.getState().likedPostIds).toEqual([]);
     expect(store.getState().bookmarkedPostIds).toEqual([]);
     expect(store.getState().followedUserIds).toEqual(currentViewer.followedUserIds);
+    expect(store.getState().likedCommentIds).toEqual([]);
+    expect(store.getState().createdCommentsById).toEqual({});
+    expect(store.getState().commentsById[created?.id ?? '']).toBeUndefined();
     expect(store.getState().feeds.recommended.ids).toEqual([]);
     expect(memory.values.has(STORAGE_KEY)).toBe(false);
   });
