@@ -159,6 +159,31 @@ function deferred<T>() {
 }
 
 describe('socialStore', () => {
+  it('falls back to default state when persisted storage cannot be read', async () => {
+    const fixturePost = post('post-music-speed-combo');
+    const { repository } = createZeroLatencyRepository({
+      'recommended:first': page([fixturePost]),
+    });
+    const storage: StateStorage = {
+      getItem: async () => {
+        throw new Error('storage unavailable');
+      },
+      setItem: () => undefined,
+      removeItem: () => undefined,
+    };
+    const store = createSocialStore(repository, storage);
+
+    await expect(store.getState().loadFeed('recommended')).resolves.toBeUndefined();
+
+    expect(store.getState().feeds.recommended).toMatchObject({
+      ids: [fixturePost.id],
+      loadState: 'success',
+      errorMessage: null,
+    });
+    expect(store.getState().likedPostIds).toEqual([]);
+    expect(store.getState().followedUserIds).toEqual(currentViewer.followedUserIds);
+  });
+
   it('hydrates interactions before zero-latency feeds commit derived state', async () => {
     const likedPost = post('post-music-speed-combo');
     const unfollowedPost = post('post-contest-final-runthrough');

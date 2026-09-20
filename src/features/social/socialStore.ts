@@ -514,7 +514,9 @@ export function createSocialStore(
     ),
   );
 
-  initialHydration = Promise.resolve(store.persist.rehydrate()).then(() => undefined);
+  initialHydration = Promise.resolve(store.persist.rehydrate())
+    .then(() => undefined)
+    .catch(() => undefined);
 
   return store as SocialStore;
 }
