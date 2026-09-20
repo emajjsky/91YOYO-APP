@@ -163,7 +163,7 @@ export default function ExploreScreen() {
       return <FeedState kind="error" title="加载失败" message={feed.errorMessage ?? '请稍后重试'} actionLabel="重新加载" onAction={() => void loadAllPosts(true)} />;
     }
     if (ranked.length === 0) {
-      return <FeedState kind="empty" title="没有找到相关内容" message="换个关键词或分类试试" actionLabel="清除筛选" onAction={() => setQuery('')} />;
+      return <FeedState kind="empty" title="没有找到相关内容" message="换个关键词或分类试试" actionLabel="清除筛选" onAction={() => { setQuery(''); setActiveCategory('all'); }} />;
     }
 
     return (
