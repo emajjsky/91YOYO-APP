@@ -4,7 +4,6 @@ interface UserInfo {
   uid: string;
   nickname: string;
   avatarUrl: string;
-  levelTag: string;
   city: string;
   bio: string;
   followingCount: number;
@@ -22,7 +21,6 @@ export const useUserStore = create<UserState>((set) => ({
     uid: 'u_self',
     nickname: '我的球友空间',
     avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
-    levelTag: '1A进阶',
     city: '上海',
     bio: '爱悠悠球，爱生活。',
     followingCount: 52,

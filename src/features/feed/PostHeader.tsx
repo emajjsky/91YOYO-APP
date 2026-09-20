@@ -51,10 +51,7 @@ export default function PostHeader({ author, createdAt, onOpenAuthor, onMore }: 
         onPress={handleAuthorPress}
         style={styles.identity}
       >
-        <View style={styles.nameLine}>
-          <Text numberOfLines={1} style={styles.name}>{author.displayName}</Text>
-          {author.roleLabel ? <Text style={styles.role}>{author.roleLabel}</Text> : null}
-        </View>
+        <Text numberOfLines={1} style={styles.name}>{author.displayName}</Text>
         <Text numberOfLines={1} style={styles.meta}>
           @{author.handle} · {formatTimeAgoFromString(createdAt)}
         </Text>
@@ -78,9 +75,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   avatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: Colors.surface },
   identity: { flex: 1, minHeight: 44, justifyContent: 'center' },
-  nameLine: { flexDirection: 'row', alignItems: 'center', gap: 6, minWidth: 0 },
   name: { color: Colors.textPrimary, fontSize: 15, fontWeight: '700', flexShrink: 1 },
-  role: { color: Colors.brand, fontSize: 11, fontWeight: '700' },
   meta: { color: Colors.textMuted, fontSize: 13, marginTop: 2 },
   iconButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
 });

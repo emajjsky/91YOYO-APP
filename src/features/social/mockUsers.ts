@@ -21,7 +21,6 @@ export const mockUsers: SocialUser[] = [
     bio: '把复杂连招拆成能每天练十分钟的小节。',
     city: '广州',
     styleTags: ['1A', '3A'],
-    roleLabel: '教练',
   },
   {
     id: 'user-xiaoyu',
@@ -31,7 +30,6 @@ export const mockUsers: SocialUser[] = [
     bio: '5A 选手，喜欢研究自由手节奏。',
     city: '成都',
     styleTags: ['1A', '5A'],
-    roleLabel: '赛事选手',
   },
   {
     id: 'user-mori',
@@ -50,7 +48,6 @@ export const mockUsers: SocialUser[] = [
     bio: '4A 抛接和舞台编排。',
     city: '武汉',
     styleTags: ['4A'],
-    roleLabel: '表演者',
   },
   {
     id: 'user-aiko',
@@ -69,7 +66,6 @@ export const mockUsers: SocialUser[] = [
     bio: '新手友好聚会发起人。',
     city: '深圳',
     styleTags: ['1A'],
-    roleLabel: '活动组织者',
   },
   {
     id: 'user-tao',
@@ -79,7 +75,6 @@ export const mockUsers: SocialUser[] = [
     bio: '赛事摄影、老球收藏和一点 5A。',
     city: '南京',
     styleTags: ['1A', '5A'],
-    roleLabel: '收藏者',
   },
   {
     id: 'user-qi',
@@ -89,7 +84,6 @@ export const mockUsers: SocialUser[] = [
     bio: '轴承、回收系统与日常维护。',
     city: '苏州',
     styleTags: ['1A', '4A'],
-    roleLabel: '器材研究',
   },
   {
     id: 'user-wen',

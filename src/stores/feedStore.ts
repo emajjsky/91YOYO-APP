@@ -83,7 +83,6 @@ function toLegacyFeedItem(
       nickname: author?.displayName ?? author?.handle ?? post.authorId,
       avatarUrl: author ? assetUri(author.avatarUri) : '',
       styleTags: author?.styleTags ?? [],
-      levelTag: author?.roleLabel,
     },
     content: post.content,
     tags: post.hashtags,

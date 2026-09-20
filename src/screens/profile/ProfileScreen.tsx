@@ -49,12 +49,7 @@ export default function ProfileScreen() {
         <View style={styles.profileCard}>
           <Image source={{ uri: userInfo.avatarUrl }} style={styles.avatar} />
           <View style={styles.profileInfo}>
-            <View style={styles.nameRow}>
-              <Text style={styles.nickname}>{userInfo.nickname}</Text>
-              <View style={styles.styleTag}>
-                <Text style={styles.styleTagText}>{userInfo.levelTag}</Text>
-              </View>
-            </View>
+            <Text style={styles.nickname}>{userInfo.nickname}</Text>
             <Text style={styles.cityText}>📍 {userInfo.city} · 球龄 4 年</Text>
           </View>
         </View>
@@ -134,14 +129,7 @@ const styles = StyleSheet.create({
     borderWidth: 2, borderColor: '#00c7d4',
   },
   profileInfo: { flex: 1, gap: 6 },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   nickname: { color: Colors.white, fontSize: 20, fontWeight: '900' },
-  styleTag: {
-    backgroundColor: '#0f1a2e', borderRadius: 6,
-    paddingHorizontal: 7, paddingVertical: 2,
-    borderWidth: 0.5, borderColor: '#1e3a5f',
-  },
-  styleTagText: { color: '#67aaff', fontSize: 12, fontWeight: '700' },
   cityText: { color: '#9ca3af', fontSize: 12 },
 
   statsRow: {

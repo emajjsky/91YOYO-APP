@@ -108,6 +108,18 @@ describe('social fixtures', () => {
     expect(new Set(mockUsers.map((user) => user.city)).size).toBeGreaterThanOrEqual(4);
   });
 
+  it('does not invent public identity labels for fixture users', () => {
+    expect(mockUsers.every((user) => !('roleLabel' in user))).toBe(true);
+  });
+
+  it('includes four, six, and nine image albums for grid coverage', () => {
+    const albumSizes = mockPosts.flatMap((post) =>
+      post.media.type === 'images' ? [post.media.assets.length] : [],
+    );
+
+    expect(albumSizes).toEqual(expect.arrayContaining([4, 6, 9]));
+  });
+
   it('contains fixed old and new timestamps plus low and high engagement', () => {
     const timestamps = mockPosts.map((post) => Date.parse(post.createdAt));
     const engagement = mockPosts.map(

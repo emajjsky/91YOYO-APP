@@ -50,7 +50,6 @@ export interface SocialUser {
   bio: string;
   city: string;
   styleTags: StyleTagType[];
-  roleLabel?: string;
 }
 
 export interface SocialPost {

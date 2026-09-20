@@ -11,6 +11,7 @@ import {
 import { Music2, Play } from 'lucide-react-native';
 import { Colors } from '../../constants/colors';
 import type { MediaContent } from '../social/types';
+import { getImageGridLayout, getSingleImageAspectRatio } from './imageGridLayout';
 
 function imageSource(uri: number | string): ImageSourcePropType {
   return typeof uri === 'number' ? uri : { uri };
@@ -27,28 +28,41 @@ function ImageMedia({ media, onOpen }: {
   media: Extract<MediaContent, { type: 'images' }>;
   onOpen(): void;
 }) {
-  const assets = media.assets.slice(0, 9);
+  const layout = getImageGridLayout(media.assets.length);
+  const assets = media.assets.slice(0, layout.visibleCount);
   if (assets.length === 0) return null;
   if (assets.length === 1) {
     return (
       <Pressable accessibilityLabel="查看图片" accessibilityRole="imagebutton" onPress={stopAndRun(onOpen)}>
-        <Image source={imageSource(assets[0].uri)} style={styles.singleImage} resizeMode="cover" />
+        <Image
+          source={imageSource(assets[0].uri)}
+          style={[styles.singleImage, { aspectRatio: getSingleImageAspectRatio(assets[0].aspectRatio) }]}
+          resizeMode="cover"
+        />
       </Pressable>
     );
   }
-  if (assets.length === 2) {
-    return (
-      <Pressable accessibilityLabel="查看图片组" accessibilityRole="imagebutton" onPress={stopAndRun(onOpen)} style={styles.twoImageGrid}>
-        {assets.map((asset) => (
-          <Image key={asset.id} source={imageSource(asset.uri)} style={styles.twoImage} resizeMode="cover" />
-        ))}
-      </Pressable>
-    );
-  }
+
+  const rows = Array.from({ length: layout.rows }, (_, rowIndex) =>
+    assets.slice(rowIndex * layout.columns, (rowIndex + 1) * layout.columns),
+  );
+
   return (
-    <Pressable accessibilityLabel="查看图片组" accessibilityRole="imagebutton" onPress={stopAndRun(onOpen)} style={styles.imageGrid}>
-      {assets.map((asset) => (
-        <Image key={asset.id} source={imageSource(asset.uri)} style={styles.gridImage} resizeMode="cover" />
+    <Pressable
+      accessibilityLabel={`查看${assets.length}张图片`}
+      accessibilityRole="imagebutton"
+      onPress={stopAndRun(onOpen)}
+      style={[styles.imageGrid, { aspectRatio: layout.columns / layout.rows }]}
+    >
+      {rows.map((row, rowIndex) => (
+        <View key={`row-${rowIndex}`} style={styles.imageGridRow}>
+          {row.map((asset) => (
+            <Image key={asset.id} source={imageSource(asset.uri)} style={styles.gridImage} resizeMode="cover" />
+          ))}
+          {Array.from({ length: layout.columns - row.length }, (_, placeholderIndex) => (
+            <View key={`placeholder-${placeholderIndex}`} style={styles.gridPlaceholder} />
+          ))}
+        </View>
       ))}
     </Pressable>
   );
@@ -104,11 +118,11 @@ export default function PostMedia({ media, onOpen }: { media: MediaContent; onOp
 }
 
 const styles = StyleSheet.create({
-  singleImage: { width: '100%', aspectRatio: 4 / 3, borderRadius: 8, backgroundColor: Colors.surface },
-  twoImageGrid: { flexDirection: 'row', gap: 3, borderRadius: 8, overflow: 'hidden' },
-  twoImage: { flex: 1, aspectRatio: 1, backgroundColor: Colors.surface },
-  imageGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 3 },
-  gridImage: { width: '32%', aspectRatio: 1, backgroundColor: Colors.surface },
+  singleImage: { width: '100%', borderRadius: 8, backgroundColor: Colors.surface },
+  imageGrid: { width: '100%', gap: 3, borderRadius: 8, overflow: 'hidden' },
+  imageGridRow: { flex: 1, flexDirection: 'row', gap: 3 },
+  gridImage: { flex: 1, backgroundColor: Colors.surface },
+  gridPlaceholder: { flex: 1 },
   video: { width: '100%', borderRadius: 8, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.surface },
   videoShade: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(9, 11, 13, 0.22)' },
   playButton: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(9, 11, 13, 0.72)', alignItems: 'center', justifyContent: 'center' },

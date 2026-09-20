@@ -15,7 +15,6 @@ const MOCK_USER = {
   nickname: 'Hiroshi_5A',
   avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80',
   styleTags: ['5A', '1A'],
-  levelTag: 'WYYC 冠军',
   city: '东京 · 日本',
   followingCount: 234,
   followersCount: 8821,
@@ -54,14 +53,7 @@ export default function UserProfileScreen() {
         <View style={styles.profileHeader}>
           <Image source={{ uri: MOCK_USER.avatarUrl }} style={styles.avatar} />
           <View style={styles.profileInfo}>
-            <View style={styles.nameRow}>
-              <Text style={styles.nickname}>{MOCK_USER.nickname}</Text>
-              {MOCK_USER.levelTag && (
-                <View style={styles.levelTag}>
-                  <Text style={styles.levelTagText}>{MOCK_USER.levelTag}</Text>
-                </View>
-              )}
-            </View>
+            <Text style={styles.nickname}>{MOCK_USER.nickname}</Text>
             <View style={styles.styleTagRow}>
               {MOCK_USER.styleTags.map((t) => (
                 <View key={t} style={styles.styleTag}>
@@ -152,14 +144,7 @@ const styles = StyleSheet.create({
     borderWidth: 2, borderColor: '#2a2d33',
   },
   profileInfo: { flex: 1, gap: 6 },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   nickname: { color: Colors.white, fontSize: 18, fontWeight: '900' },
-  levelTag: {
-    backgroundColor: '#1a0a2e', borderRadius: 6,
-    paddingHorizontal: 7, paddingVertical: 2,
-    borderWidth: 0.5, borderColor: '#3a1a5f',
-  },
-  levelTagText: { color: '#c084fc', fontSize: 11, fontWeight: '700' },
   styleTagRow: { flexDirection: 'row', gap: 4 },
   styleTag: {
     backgroundColor: '#1c2028', borderRadius: 4,

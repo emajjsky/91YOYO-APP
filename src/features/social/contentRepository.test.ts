@@ -72,9 +72,9 @@ describe('createMockContentRepository', () => {
     const expectedFirstFive = [
       'post-contest-final-runthrough',
       'post-tutorial-5a-direction-change',
+      'post-history-indiana-contest',
       'post-editorial-2a-contest-loop',
       'post-tutorial-4a-catch-height',
-      'post-music-clean-steps',
     ];
 
     const first = await createRepository().getFeed({ mode: 'recommended', limit: 5 });
@@ -284,7 +284,7 @@ describe('createMockContentRepository', () => {
     const nextPost = await repository.getPost('post-history-indiana-contest');
 
     expect(nextPost?.content).toBe(
-      '旧赛场的两张现场照记录了 2008 年参赛者在后台热身与交流的场景。',
+      '旧赛场的四张现场照记录了参赛者在后台热身、交流与上台的场景。',
     );
     expect(nextPost?.styleTags).toEqual(['1A']);
     expect(nextPost?.hashtags).toEqual(['#赛事影像', '#悠悠球历史']);
@@ -293,6 +293,8 @@ describe('createMockContentRepository', () => {
       assets: [
         { alt: '悠悠球比赛现场选手动作照片' },
         { alt: '同场比赛的另一张现场照片' },
+        { alt: '选手在比赛场地进行动作' },
+        { alt: '早期悠悠球赛事历史照片' },
       ],
     });
   });
