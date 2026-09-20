@@ -8,6 +8,7 @@ import JamScreen from '../screens/jam/JamScreen';
 import UserProfileScreen from '../screens/profile/UserProfileScreen';
 import PostDetailScreen from '../screens/post/PostDetailScreen';
 import AccountSettingsScreen from '../screens/profile/AccountSettingsScreen';
+import VideoFeedScreen from '../screens/video/VideoFeedScreen';
 
 export type RootStackParamList = {
   MainTabs: undefined;
@@ -16,6 +17,7 @@ export type RootStackParamList = {
   Jam: undefined;
   UserProfile: { userId: string };
   PostDetail: { postId: string };
+  VideoFeed: { initialPostId: string };
   AccountSettings: undefined;
 };
 
@@ -41,6 +43,7 @@ export default function RootNavigator() {
         <Stack.Screen name="Jam" component={JamScreen} />
         <Stack.Screen name="UserProfile" component={UserProfileScreen} />
         <Stack.Screen name="PostDetail" component={PostDetailScreen} />
+        <Stack.Screen name="VideoFeed" component={VideoFeedScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="AccountSettings" component={AccountSettingsScreen} />
       </Stack.Navigator>
     </NavigationContainer>
