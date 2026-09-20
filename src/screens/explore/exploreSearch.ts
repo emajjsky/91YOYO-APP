@@ -124,15 +124,3 @@ export function getTrendingTopics(
     .sort((left, right) => right.count - left.count || (left.label < right.label ? -1 : 1))
     .slice(0, Math.max(0, limit));
 }
-
-export interface ExploreSearchItem {
-  id: string;
-  title: string;
-  desc: string;
-}
-
-export function filterExploreItems<T extends ExploreSearchItem>(items: T[], query: string): T[] {
-  const normalizedQuery = normalized(query);
-  if (!normalizedQuery) return items;
-  return items.filter((item) => normalized(`${item.title}\n${item.desc}`).includes(normalizedQuery));
-}
