@@ -68,6 +68,15 @@ export interface SocialPost {
   visibility: 'public' | 'followers';
 }
 
+export interface SocialComment {
+  id: string;
+  postId: string;
+  authorId: string;
+  body: string;
+  createdAt: string;
+  likeCount: number;
+}
+
 export interface ViewerProfile {
   userId: string;
   interestStyles: StyleTagType[];

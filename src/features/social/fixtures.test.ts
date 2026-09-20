@@ -2,6 +2,7 @@ import './testAssetLoader';
 import { describe, expect, it } from 'vitest';
 import { POST_CATEGORIES, STYLE_TAGS } from '../../constants/categories';
 import { currentViewer } from './mockProfiles';
+import { mockComments } from './mockComments';
 import { mockPosts } from './mockPosts';
 import { mockUsers } from './mockUsers';
 import type { MediaContent } from './types';
@@ -40,6 +41,13 @@ describe('social fixtures', () => {
     expect(
       currentViewer.followedUserIds.every((userId) => mockUsers.some((user) => user.id === userId)),
     ).toBe(true);
+  });
+
+  it('links uniquely identified comments to fixture posts and users', () => {
+    expect(mockComments.length).toBeGreaterThanOrEqual(12);
+    expect(new Set(mockComments.map((comment) => comment.id)).size).toBe(mockComments.length);
+    expect(mockComments.every((comment) => mockPosts.some((post) => post.id === comment.postId))).toBe(true);
+    expect(mockComments.every((comment) => mockUsers.some((user) => user.id === comment.authorId))).toBe(true);
   });
 
   it('covers every category and style', () => {
