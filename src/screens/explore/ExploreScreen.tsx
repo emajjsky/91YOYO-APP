@@ -1,199 +1,292 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity,
-  ScrollView, FlatList, StyleSheet,
+  ActivityIndicator,
+  Image,
+  type ImageSourcePropType,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  useWindowDimensions,
+  View,
 } from 'react-native';
+import type { CompositeNavigationProp } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Heart, ImageIcon, Music2, Play, Search, X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors } from '../../constants/colors';
 import { POST_CATEGORIES } from '../../constants/categories';
-import { filterExploreItems } from './exploreSearch';
+import { Colors } from '../../constants/colors';
+import FeedState from '../../features/feed/FeedState';
+import { useSocialStore } from '../../features/social/socialStore';
+import type { MediaContent, SocialPost } from '../../features/social/types';
+import type { MainTabParamList } from '../../navigation/MainTabNavigator';
+import type { RootStackParamList } from '../../navigation/RootNavigator';
+import {
+  getTrendingTopics,
+  partitionExploreResults,
+  rankExplorePosts,
+  type ExploreCategoryId,
+  type ExploreResult,
+} from './exploreSearch';
 
-type CategoryId = typeof POST_CATEGORIES[number]['id'];
+type ExploreNavigation = CompositeNavigationProp<
+  BottomTabNavigationProp<MainTabParamList, 'Explore'>,
+  NativeStackNavigationProp<RootStackParamList>
+>;
 
-const MOCK_EXPLORE: Record<CategoryId, { id: string; title: string; desc: string; likes: number }[]> = {
-  daily: [
-    { id: 'e1', title: '练习日记 · 第 30 天', desc: '坚持每天练一小时 Brent Stole，今天终于做稳了！', likes: 42 },
-    { id: 'e2', title: '新球开箱 · CLYW Blizzard', desc: '渐变阳极太好看了，空转稳如老狗 🪀', likes: 88 },
-  ],
-  music: [
-    { id: 'e3', title: 'CYSO 2026 决赛伴奏合集', desc: 'BPM 128-140 精选 8 首，全部剪成 3min 标准时长', likes: 204 },
-    { id: 'e4', title: 'Pendulum 最适合 4A 的 5 首歌', desc: '大开大合节奏感强，推荐 The Island', likes: 77 },
-  ],
-  tutorial: [
-    { id: 'e5', title: 'Kwyjibo 分步拆解（5A）', desc: '搭线过程逐帧分析，附慢放视频', likes: 316 },
-    { id: 'e6', title: '1A 速度流入门 · Shockwave', desc: '适合 Lv.4-5 球手，从直线到交叉搭线', likes: 153 },
-  ],
-  contest: [
-    { id: 'e7', title: '2025 WYYC 1A 冠军 Free Style 完整视频', desc: '日本选手 Hiroshi 3 分钟满分演出', likes: 892 },
-    { id: 'e8', title: 'CYSO 2026 上海站 3A 决赛精彩集锦', desc: '双手机技太丝滑了，双球同步率 99%', likes: 441 },
-  ],
-  event_news: [
-    { id: 'e9', title: 'CYSO 2026 全国总决赛报名开始！', desc: '11月15日广州站，1A~5A全组别，截止10月31日', likes: 567 },
-    { id: 'e10', title: '2026 WYYC 确认在布拉格举办', desc: '7月第三周，主办方公布报名细则', likes: 389 },
-  ],
-  product: [
-    { id: 'e11', title: 'YoyoFactory 2026 新品 Shutter Beyond 发布', desc: '全铝 H 型设计，竞技向强化版，\$65 USD', likes: 234 },
-    { id: 'e12', title: 'CLYW x iYoyo 联名款限量开售', desc: '500 只限量，3 种配色，下午 3 点开抢', likes: 721 },
-  ],
-  meetup: [
-    { id: 'e13', title: '北京 Jam · 朝阳公园 | 本周六', desc: '下午 2-6 点，all style 欢迎，带球就行 📍', likes: 93 },
-    { id: 'e14', title: '上海月度约球 · 静安雕塑公园', desc: '9月21日，有 5A 高手现场教学', likes: 67 },
-  ],
-};
+const DISCOVERY_NOW = '2026-09-20T12:00:00.000Z';
+const CATEGORIES: { id: ExploreCategoryId; label: string }[] = [
+  { id: 'all', label: '全部' },
+  ...POST_CATEGORIES.map(({ id, label }) => ({ id, label })),
+];
 
-const HOT_TAGS: Record<CategoryId, string[]> = {
-  daily:      ['#日常练习', '#悠悠球', '#开箱'],
-  music:      ['#CYSO2026', '#比赛伴奏', '#BPM132'],
-  tutorial:   ['#招式教学', '#5A离手', '#慢放拆解'],
-  contest:    ['#WYYC', '#CYSO', '#1A冠军'],
-  event_news: ['#CYSO2026', '#赛事报名', '#WYYC布拉格'],
-  product:    ['#新品发布', '#CLYW', '#YoyoFactory'],
-  meetup:     ['#北京Jam', '#约球', '#线下聚会'],
-};
+function imageSource(uri: number | string): ImageSourcePropType {
+  return typeof uri === 'number' ? uri : { uri };
+}
+
+function mediaPreview(media: MediaContent): ImageSourcePropType | null {
+  switch (media.type) {
+    case 'images': return media.assets[0] ? imageSource(media.assets[0].uri) : null;
+    case 'video': return imageSource(media.asset.posterUri);
+    case 'audio': return imageSource(media.asset.coverUri);
+    default: return null;
+  }
+}
+
+function compactCount(value: number): string {
+  if (value >= 10_000) return `${Math.round(value / 10_000)}万`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}k`;
+  return String(value);
+}
+
+function MediaBadge({ media }: { media: MediaContent }) {
+  if (media.type === 'video') return <Play color={Colors.textPrimary} fill={Colors.textPrimary} size={16} strokeWidth={1.8} />;
+  if (media.type === 'audio') return <Music2 color={Colors.textPrimary} size={16} strokeWidth={2} />;
+  if (media.type === 'images') return <ImageIcon color={Colors.textPrimary} size={16} strokeWidth={2} />;
+  return null;
+}
+
+function MediaCard({ result, width, onPress }: {
+  result: ExploreResult;
+  width: number;
+  onPress(): void;
+}) {
+  const source = mediaPreview(result.post.media);
+  return (
+    <Pressable accessibilityRole="button" onPress={onPress} style={[styles.mediaCard, { width }]}>
+      <View style={styles.preview}>
+        {source ? <Image source={source} resizeMode="cover" style={StyleSheet.absoluteFill} /> : null}
+        <View style={styles.previewShade} />
+        <View style={styles.mediaBadge}><MediaBadge media={result.post.media} /></View>
+      </View>
+      <Text numberOfLines={2} style={styles.mediaContent}>{result.post.content}</Text>
+      <View style={styles.mediaMeta}>
+        <Text numberOfLines={1} style={styles.authorName}>@{result.author.handle}</Text>
+        <View style={styles.likeMeta}>
+          <Heart color={Colors.textMuted} size={13} strokeWidth={2} />
+          <Text style={styles.metaText}>{compactCount(result.post.likeCount)}</Text>
+        </View>
+      </View>
+    </Pressable>
+  );
+}
+
+function TextResult({ result, onPress }: { result: ExploreResult; onPress(): void }) {
+  return (
+    <Pressable accessibilityRole="button" onPress={onPress} style={styles.textResult}>
+      <View style={styles.textResultHeader}>
+        <Text numberOfLines={1} style={styles.textAuthor}>{result.author.displayName}</Text>
+        <Text numberOfLines={1} style={styles.textHandle}>@{result.author.handle}</Text>
+      </View>
+      <Text numberOfLines={3} style={styles.textContent}>{result.post.content}</Text>
+      {result.post.hashtags.length > 0 ? (
+        <Text numberOfLines={1} style={styles.textHashtags}>{result.post.hashtags.join(' ')}</Text>
+      ) : null}
+    </Pressable>
+  );
+}
 
 export default function ExploreScreen() {
   const insets = useSafeAreaInsets();
-  const [searchText, setSearchText] = useState('');
-  const [activeCategory, setActiveCategory] = useState<CategoryId>('daily');
+  const { width: windowWidth } = useWindowDimensions();
+  const navigation = useNavigation<ExploreNavigation>();
+  const state = useSocialStore();
+  const [query, setQuery] = useState('');
+  const [activeCategory, setActiveCategory] = useState<ExploreCategoryId>('all');
+  const mediaCardWidth = Math.max(140, (windowWidth - 40) / 2);
 
-  const categoryItems = MOCK_EXPLORE[activeCategory] ?? [];
-  const searchableItems = searchText.trim()
-    ? Object.values(MOCK_EXPLORE).flat()
-    : categoryItems;
-  const items = filterExploreItems(searchableItems, searchText);
-  const hotTags = HOT_TAGS[activeCategory] ?? [];
+  const loadAllPosts = useCallback(async (refresh = false) => {
+    await useSocialStore.getState().loadFeed('recommended', refresh);
+    while (true) {
+      const currentFeed = useSocialStore.getState().feeds.recommended;
+      if (!currentFeed.hasMore || currentFeed.loadState === 'error') return;
+      await useSocialStore.getState().loadMore('recommended');
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadAllPosts();
+  }, [loadAllPosts]);
+
+  const posts = useMemo(() => Object.values(state.postsById), [state.postsById]);
+  const users = useMemo(() => Object.values(state.usersById), [state.usersById]);
+  const ranked = useMemo(() => rankExplorePosts({
+    posts,
+    users,
+    category: activeCategory,
+    query,
+    now: DISCOVERY_NOW,
+  }), [activeCategory, posts, query, users]);
+  const partitioned = useMemo(() => partitionExploreResults(ranked), [ranked]);
+  const topics = useMemo(
+    () => getTrendingTopics(posts, activeCategory, 8),
+    [activeCategory, posts],
+  );
+  const feed = state.feeds.recommended;
+
+  const openPost = (post: SocialPost) => {
+    navigation.navigate('PostDetail', { postId: post.id });
+  };
+
+  const content = () => {
+    if (feed.ids.length === 0 && (feed.loadState === 'idle' || feed.loadState === 'loading')) {
+      return <FeedState kind="loading" message="正在整理发现内容" />;
+    }
+    if (feed.ids.length === 0 && feed.loadState === 'error') {
+      return <FeedState kind="error" title="加载失败" message={feed.errorMessage ?? '请稍后重试'} actionLabel="重新加载" onAction={() => void loadAllPosts(true)} />;
+    }
+    if (ranked.length === 0) {
+      return <FeedState kind="empty" title="没有找到相关内容" message="换个关键词或分类试试" actionLabel="清除筛选" onAction={() => setQuery('')} />;
+    }
+
+    return (
+      <>
+        {!query.trim() && topics.length > 0 ? (
+          <View style={styles.topicSection}>
+            <Text style={styles.sectionTitle}>热门话题</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.topicRow}>
+              {topics.map((topic) => (
+                <Pressable key={topic.label} accessibilityRole="button" onPress={() => setQuery(topic.label)} style={styles.topicButton}>
+                  <Text style={styles.topicLabel}>{topic.label}</Text>
+                  <Text style={styles.topicCount}>{topic.count}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        ) : null}
+
+        {partitioned.media.length > 0 ? (
+          <View style={styles.resultSection}>
+            <Text style={styles.sectionTitle}>内容发现</Text>
+            <View style={styles.mediaGrid}>
+              {partitioned.media.map((result) => (
+                <MediaCard key={result.post.id} result={result} width={mediaCardWidth} onPress={() => openPost(result.post)} />
+              ))}
+            </View>
+          </View>
+        ) : null}
+
+        {partitioned.text.length > 0 ? (
+          <View style={styles.textSection}>
+            <Text style={styles.sectionTitle}>动态</Text>
+            {partitioned.text.map((result) => (
+              <TextResult key={result.post.id} result={result} onPress={() => openPost(result.post)} />
+            ))}
+          </View>
+        ) : null}
+
+        {feed.loadState === 'loading_more' ? <ActivityIndicator color={Colors.brand} style={styles.loadingMore} /> : null}
+        {feed.loadState === 'error' ? (
+          <Pressable accessibilityRole="button" onPress={() => void loadAllPosts()} style={styles.retryButton}>
+            <Text style={styles.retryText}>加载失败，点击重试</Text>
+          </Pressable>
+        ) : null}
+      </>
+    );
+  };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* 搜索栏 */}
+    <View style={[styles.screen, { paddingTop: insets.top }]}>
       <View style={styles.searchBar}>
-        <Text style={styles.searchIcon}>🔍</Text>
+        <Search color={Colors.textMuted} size={19} strokeWidth={2} />
         <TextInput
-          style={styles.searchInput}
-          placeholder="搜索用户、帖子、话题..."
+          accessibilityLabel="搜索用户、帖子或话题"
+          autoCapitalize="none"
+          onChangeText={setQuery}
+          placeholder="搜索用户、帖子或话题"
           placeholderTextColor={Colors.textMuted}
-          value={searchText}
-          onChangeText={setSearchText}
           returnKeyType="search"
+          style={styles.searchInput}
+          value={query}
         />
-        {searchText.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchText('')}>
-            <Text style={styles.clearBtn}>✕</Text>
-          </TouchableOpacity>
-        )}
+        {query.length > 0 ? (
+          <Pressable accessibilityLabel="清除搜索" accessibilityRole="button" hitSlop={8} onPress={() => setQuery('')} style={styles.clearButton}>
+            <X color={Colors.textMuted} size={18} strokeWidth={2} />
+          </Pressable>
+        ) : null}
       </View>
 
-      {/* 分类横向 Tab */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.catScroll}
-        contentContainerStyle={styles.catContent}
-      >
-        {POST_CATEGORIES.map((cat) => {
-          const active = activeCategory === cat.id;
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryBar} contentContainerStyle={styles.categoryContent}>
+        {CATEGORIES.map((category) => {
+          const active = activeCategory === category.id;
           return (
-            <TouchableOpacity
-              key={cat.id}
-              style={[styles.catPill, active && styles.catPillActive]}
-              onPress={() => setActiveCategory(cat.id as CategoryId)}
-            >
-              <Text style={[styles.catPillText, active && styles.catPillTextActive]}>
-                {cat.emoji} {cat.label}
-              </Text>
-            </TouchableOpacity>
+            <Pressable key={category.id} accessibilityRole="tab" accessibilityState={{ selected: active }} onPress={() => setActiveCategory(category.id)} style={styles.categoryTab}>
+              <Text style={[styles.categoryLabel, active && styles.categoryLabelActive]}>{category.label}</Text>
+              <View style={[styles.categoryIndicator, active && styles.categoryIndicatorActive]} />
+            </Pressable>
           );
         })}
       </ScrollView>
 
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-        {/* 帖子列表 */}
-        {items.map((item) => (
-          <TouchableOpacity key={item.id} style={styles.card} activeOpacity={0.8}>
-            <Text style={styles.cardTitle}>{item.title}</Text>
-            <Text style={styles.cardDesc} numberOfLines={2}>{item.desc}</Text>
-            <View style={styles.cardFooter}>
-              <Text style={styles.cardLikes}>♡ {item.likes}</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
-
-        {items.length === 0 && (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyTitle}>没有找到相关内容</Text>
-            <Text style={styles.emptyText}>换个关键词试试</Text>
-          </View>
-        )}
-
-        {/* 热门话题 */}
-        {!searchText.trim() && (
-          <>
-            <Text style={styles.hotTitle}>🔥 热门话题</Text>
-            <View style={styles.hotTagRow}>
-              {hotTags.map((tag) => (
-                <TouchableOpacity key={tag} style={styles.hotTag}>
-                  <Text style={styles.hotTagText}>{tag}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </>
-        )}
+      <ScrollView showsVerticalScrollIndicator={false} style={styles.results} contentContainerStyle={styles.resultsContent}>
+        {content()}
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bg },
-
-  // 搜索栏
-  searchBar: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#111318',
-    marginHorizontal: 16, marginVertical: 10,
-    borderRadius: 24, paddingHorizontal: 14, paddingVertical: 10,
-    borderWidth: 0.5, borderColor: '#252930',
-  },
-  searchIcon: { fontSize: 15, marginRight: 8 },
-  searchInput: { flex: 1, color: Colors.white, fontSize: 15 },
-  clearBtn: { color: Colors.textMuted, fontSize: 16, paddingLeft: 8 },
-
-  // 分类
-  catScroll: { flexGrow: 0, borderBottomWidth: 0.5, borderBottomColor: '#1a1d22' },
-  catContent: { paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
-  catPill: {
-    paddingHorizontal: 14, paddingVertical: 7,
-    borderRadius: 20, backgroundColor: '#111318',
-    borderWidth: 0.5, borderColor: '#252930',
-  },
-  catPillActive: { backgroundColor: Colors.white },
-  catPillText: { color: Colors.textMuted, fontSize: 13, fontWeight: '700' },
-  catPillTextActive: { color: Colors.black },
-
-  // 列表
-  scroll: { flex: 1 },
-  scrollContent: { padding: 16, gap: 12 },
-
-  card: {
-    backgroundColor: '#0c0f14',
-    borderRadius: 14, borderWidth: 0.5, borderColor: '#1e2330',
-    padding: 14, gap: 6,
-  },
-  cardTitle: { color: Colors.white, fontSize: 15, fontWeight: '700' },
-  cardDesc: { color: Colors.textMuted, fontSize: 13, lineHeight: 20 },
-  cardFooter: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 4 },
-  cardLikes: { color: Colors.textMuted, fontSize: 13 },
-  emptyState: { minHeight: 180, alignItems: 'center', justifyContent: 'center', gap: 6 },
-  emptyTitle: { color: Colors.white, fontSize: 15, fontWeight: '700' },
-  emptyText: { color: Colors.textMuted, fontSize: 13 },
-
-  // 热门话题
-  hotTitle: { color: Colors.white, fontSize: 15, fontWeight: '800', marginTop: 8, marginBottom: 4 },
-  hotTagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  hotTag: {
-    paddingHorizontal: 12, paddingVertical: 6,
-    borderRadius: 20, backgroundColor: '#0f1a2e',
-    borderWidth: 0.5, borderColor: '#1e3a5f',
-  },
-  hotTagText: { color: '#1d9bf0', fontSize: 13, fontWeight: '600' },
+  screen: { flex: 1, backgroundColor: Colors.background },
+  searchBar: { height: 44, flexDirection: 'row', alignItems: 'center', gap: 9, marginHorizontal: 14, marginTop: 8, paddingHorizontal: 12, borderRadius: 8, backgroundColor: Colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.border },
+  searchInput: { flex: 1, height: 42, color: Colors.textPrimary, fontSize: 15, paddingVertical: 0 },
+  clearButton: { width: 32, height: 40, alignItems: 'center', justifyContent: 'center' },
+  categoryBar: { flexGrow: 0, height: 46, marginTop: 4, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.border },
+  categoryContent: { paddingHorizontal: 8 },
+  categoryTab: { height: 45, minWidth: 66, paddingHorizontal: 9, alignItems: 'center', justifyContent: 'flex-end' },
+  categoryLabel: { color: Colors.textMuted, fontSize: 13, fontWeight: '600', paddingBottom: 9 },
+  categoryLabelActive: { color: Colors.textPrimary, fontWeight: '800' },
+  categoryIndicator: { width: 28, height: 2, backgroundColor: 'transparent' },
+  categoryIndicatorActive: { backgroundColor: Colors.brand },
+  results: { flex: 1 },
+  resultsContent: { paddingTop: 14, paddingBottom: 28 },
+  topicSection: { marginBottom: 18 },
+  sectionTitle: { color: Colors.textPrimary, fontSize: 15, fontWeight: '800', marginHorizontal: 16, marginBottom: 10 },
+  topicRow: { paddingHorizontal: 16, gap: 8 },
+  topicButton: { height: 34, flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 10, borderRadius: 6, backgroundColor: Colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.border },
+  topicLabel: { color: Colors.brand, fontSize: 13, fontWeight: '700' },
+  topicCount: { color: Colors.textMuted, fontSize: 11 },
+  resultSection: { marginBottom: 22 },
+  mediaGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16 },
+  mediaCard: { overflow: 'hidden', borderRadius: 6, backgroundColor: Colors.surface },
+  preview: { width: '100%', aspectRatio: 1, backgroundColor: Colors.surface, overflow: 'hidden' },
+  previewShade: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(9, 11, 13, 0.12)' },
+  mediaBadge: { position: 'absolute', right: 8, top: 8, width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(9, 11, 13, 0.72)' },
+  mediaContent: { minHeight: 48, color: Colors.textPrimary, fontSize: 13, lineHeight: 18, fontWeight: '600', paddingHorizontal: 9, paddingTop: 8 },
+  mediaMeta: { height: 32, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6, paddingHorizontal: 9 },
+  authorName: { flex: 1, color: Colors.textMuted, fontSize: 11 },
+  likeMeta: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  metaText: { color: Colors.textMuted, fontSize: 11 },
+  textSection: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.border, paddingTop: 16 },
+  textResult: { minHeight: 108, paddingHorizontal: 16, paddingVertical: 13, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.border },
+  textResultHeader: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  textAuthor: { color: Colors.textPrimary, fontSize: 14, fontWeight: '700' },
+  textHandle: { flex: 1, color: Colors.textMuted, fontSize: 12 },
+  textContent: { color: Colors.textSecondary, fontSize: 14, lineHeight: 20, marginTop: 6 },
+  textHashtags: { color: Colors.brand, fontSize: 12, marginTop: 6 },
+  loadingMore: { paddingVertical: 20 },
+  retryButton: { minHeight: 52, alignItems: 'center', justifyContent: 'center' },
+  retryText: { color: Colors.brand, fontSize: 13, fontWeight: '700' },
 });

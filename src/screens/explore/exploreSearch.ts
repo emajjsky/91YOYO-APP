@@ -17,6 +17,16 @@ export interface TrendingTopic {
   count: number;
 }
 
+export function partitionExploreResults(results: ExploreResult[]): {
+  media: ExploreResult[];
+  text: ExploreResult[];
+} {
+  return {
+    media: results.filter(({ post }) => post.media.type !== 'none'),
+    text: results.filter(({ post }) => post.media.type === 'none'),
+  };
+}
+
 function clampUnit(value: number): number {
   if (!Number.isFinite(value)) return 0;
   return Math.min(1, Math.max(0, value));

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { SocialPost, SocialUser } from '../../features/social/types';
-import { getTrendingTopics, rankExplorePosts } from './exploreSearch';
+import { getTrendingTopics, partitionExploreResults, rankExplorePosts } from './exploreSearch';
 
 const NOW = '2026-09-15T12:00:00.000Z';
 
@@ -109,5 +109,40 @@ describe('getTrendingTopics', () => {
       { label: '#动作', count: 1 },
       { label: '#基础', count: 1 },
     ]);
+  });
+});
+
+describe('partitionExploreResults', () => {
+  it('keeps ranked media and text-only posts in their original order', () => {
+    const ranked = rankExplorePosts({
+      posts: [
+        post({ id: 'image', media: { type: 'images', assets: [] }, likeCount: 100 }),
+        post({ id: 'text', media: { type: 'none' }, likeCount: 50 }),
+        post({
+          id: 'video',
+          likeCount: 10,
+          media: {
+            type: 'video',
+            asset: {
+              id: 'video',
+              title: '视频',
+              posterUri: 'poster.jpg',
+              aspectRatio: 1,
+              playbackStatus: 'reserved',
+              durationSeconds: null,
+            },
+          },
+        }),
+      ],
+      users,
+      category: 'all',
+      query: '',
+      now: NOW,
+    });
+
+    const partitioned = partitionExploreResults(ranked);
+
+    expect(partitioned.media.map(({ post: resultPost }) => resultPost.id)).toEqual(['image', 'video']);
+    expect(partitioned.text.map(({ post: resultPost }) => resultPost.id)).toEqual(['text']);
   });
 });
