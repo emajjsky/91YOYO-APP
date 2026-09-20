@@ -49,6 +49,16 @@ describe('orderVideoPosts', () => {
     expect(orderVideoPosts(posts, 'video').map(({ id }) => id)).toEqual(['video']);
   });
 
+  it('keeps an explicitly opened followers-only video as the first item', () => {
+    const posts = [
+      post({ id: 'public' }),
+      post({ id: 'opened', visibility: 'followers' }),
+      post({ id: 'hidden-related', visibility: 'followers' }),
+    ];
+
+    expect(orderVideoPosts(posts, 'opened').map(({ id }) => id)).toEqual(['opened', 'public']);
+  });
+
   it('puts same-category and shared-style videos before unrelated videos', () => {
     const posts = [
       post({ id: 'unrelated', category: 'music', styleTags: ['5A'] }),

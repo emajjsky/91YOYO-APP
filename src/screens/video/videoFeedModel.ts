@@ -18,10 +18,9 @@ function relationScore(candidate: SocialPost, initial: SocialPost): number {
 }
 
 export function orderVideoPosts(posts: SocialPost[], initialPostId: string): SocialPost[] {
-  const videos = posts.filter(
-    (post) => post.visibility === 'public' && post.media.type === 'video',
-  );
-  const initial = videos.find((post) => post.id === initialPostId);
+  const allVideos = posts.filter((post) => post.media.type === 'video');
+  const videos = allVideos.filter((post) => post.visibility === 'public');
+  const initial = allVideos.find((post) => post.id === initialPostId);
 
   if (!initial) return [...videos].sort(compareNewestThenId);
 
