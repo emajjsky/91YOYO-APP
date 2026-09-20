@@ -1,8 +1,9 @@
 import React from 'react';
-import { Text, TouchableOpacity, View, StyleSheet } from 'react-native';
+import { Pressable, Text, View, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Plus } from 'lucide-react-native';
 import HomeScreen from '../screens/home/HomeScreen';
 import ExploreScreen from '../screens/explore/ExploreScreen';
 import GearScreen from '../screens/gear/GearScreen';
@@ -28,24 +29,23 @@ const TAB_LABELS: Record<string, string> = {
   Profile: '我的',
 };
 
-// 突出的中间 + 发布按钮
 function ComposeButton() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   return (
-    <TouchableOpacity
+    <Pressable
+      accessibilityLabel="发布"
+      accessibilityRole="button"
       style={styles.composeBtnWrapper}
       onPress={() => navigation.navigate('Compose')}
-      activeOpacity={0.85}
     >
       <View style={styles.composeBtn}>
-        <Text style={styles.composeBtnIcon}>＋</Text>
+        <Plus color={Colors.background} size={25} strokeWidth={2.5} />
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 
-// 空白占位页（不会真正展示）
-function EmptyScreen() { return <View style={{ flex: 1, backgroundColor: '#000' }} />; }
+function EmptyScreen() { return <View style={{ flex: 1, backgroundColor: Colors.background }} />; }
 
 export default function MainTabNavigator() {
   return (
@@ -53,7 +53,8 @@ export default function MainTabNavigator() {
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarStyle: styles.tabBar,
-        tabBarActiveTintColor: Colors.white,
+        tabBarItemStyle: styles.tabBarItem,
+        tabBarActiveTintColor: Colors.textPrimary,
         tabBarInactiveTintColor: Colors.textMuted,
         tabBarLabel: ({ color }) => {
           if (route.name === '__Compose') return null;
@@ -65,10 +66,10 @@ export default function MainTabNavigator() {
         },
         tabBarIcon: ({ focused }) => {
           switch (route.name) {
-            case 'Home':    return <HomeIcon active={focused} />;
+            case 'Home': return <HomeIcon active={focused} />;
             case 'Explore': return <ExploreIcon active={focused} />;
-            case '__Compose': return null; // 由 tabBarButton 接管
-            case 'Gear':    return <GearIcon active={focused} />;
+            case '__Compose': return null;
+            case 'Gear': return <GearIcon active={focused} />;
             case 'Profile': return <ProfileIcon active={focused} />;
             default:        return null;
           }
@@ -92,38 +93,27 @@ export default function MainTabNavigator() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: Colors.bg,
-    borderTopColor: '#181a1f',
-    borderTopWidth: 0.5,
-    height: 84,
-    paddingBottom: 28,
-    paddingTop: 8,
+    backgroundColor: Colors.background,
+    borderTopColor: Colors.border,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    height: 80,
+    paddingBottom: 22,
+    paddingTop: 6,
   },
+  tabBarItem: { minWidth: 64 },
   composeBtnWrapper: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
+    minWidth: 64,
   },
   composeBtn: {
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.textPrimary,
     justifyContent: 'center',
     alignItems: 'center',
-    // 向上凸出效果
-    marginTop: -14,
-    shadowColor: '#fff',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-  },
-  composeBtnIcon: {
-    color: Colors.black,
-    fontSize: 26,
-    fontWeight: '300',
-    lineHeight: 30,
-    marginTop: -2,
+    marginTop: -10,
   },
 });

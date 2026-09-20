@@ -1,465 +1,192 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  View,
-  Text,
-  FlatList,
-  Image,
-  TouchableOpacity,
-  StyleSheet,
-  Animated,
-  Dimensions,
-  Alert,
-  RefreshControl,
   ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  Share,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Pressable } from 'react-native';
+import type { CompositeNavigationProp } from '@react-navigation/native';
 import { useNavigation } from '@react-navigation/native';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useFeedStore } from '../../stores/feedStore';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/colors';
-import { POST_CATEGORIES } from '../../constants/categories';
-import { formatTimeAgoFromString } from '../../utils/timeAgo';
-import type { IFeedItem } from '../../types/feed';
+import FeedPost from '../../features/feed/FeedPost';
+import FeedState from '../../features/feed/FeedState';
+import type { FeedMode } from '../../features/social/contentRepository';
+import { useSocialStore } from '../../features/social/socialStore';
+import type { SocialPost } from '../../features/social/types';
+import type { MainTabParamList } from '../../navigation/MainTabNavigator';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 
-const { width: SCREEN_W } = Dimensions.get('window');
-const TAB_ITEMS = ['为你推荐', '正在关注'] as const;
-type FeedTab = typeof TAB_ITEMS[number];
+type HomeNavigation = CompositeNavigationProp<
+  BottomTabNavigationProp<MainTabParamList, 'Home'>,
+  NativeStackNavigationProp<RootStackParamList>
+>;
 
-// ─── 子组件：花式标签 ─────────────────────────────
-function StyleTags({ tags, levelTag }: { tags: string[]; levelTag?: string }) {
-  const displayTags = tags.slice(0, 3);
-  const overflow = tags.length - 3;
-  return (
-    <View style={styles.styleTagRow}>
-      {displayTags.map((t) => (
-        <View key={t} style={styles.styleTag}>
-          <Text style={styles.styleTagText}>{t}</Text>
-        </View>
-      ))}
-      {overflow > 0 && (
-        <View style={styles.styleTag}>
-          <Text style={styles.styleTagText}>+{overflow}</Text>
-        </View>
-      )}
-      {levelTag && (
-        <View style={[styles.styleTag, styles.levelTag]}>
-          <Text style={styles.levelTagText}>{levelTag}</Text>
-        </View>
-      )}
-    </View>
-  );
-}
+const MODES: { mode: FeedMode; label: string }[] = [
+  { mode: 'recommended', label: '推荐' },
+  { mode: 'following', label: '关注' },
+];
 
-// ─── 子组件：分类标签 ─────────────────────────────
-function CategoryTag({ categoryId }: { categoryId: string }) {
-  const cat = POST_CATEGORIES.find((c) => c.id === categoryId);
-  if (!cat) return null;
-  return (
-    <View style={styles.categoryTag}>
-      <Text style={styles.categoryTagText}>{cat.emoji} {cat.label}</Text>
-    </View>
-  );
-}
-
-// ─── 子组件：九宫格图片 ───────────────────────────
-function ImageGrid({ images }: { images: { url: string }[] }) {
-  const count = images.length;
-  if (count === 1) {
-    return (
-      <Image source={{ uri: images[0].url }} style={styles.singleImage} resizeMode="cover" />
-    );
-  }
-  if (count === 2) {
-    return (
-      <View style={styles.twoGrid}>
-        {images.map((img, i) => (
-          <Image key={i} source={{ uri: img.url }} style={styles.twoGridItem} resizeMode="cover" />
-        ))}
-      </View>
-    );
-  }
-  // 3-9 张：九宫格
-  return (
-    <View style={styles.nineGrid}>
-      {images.slice(0, 9).map((img, i) => (
-        <Image key={i} source={{ uri: img.url }} style={styles.nineGridItem} resizeMode="cover" />
-      ))}
-    </View>
-  );
-}
-
-// ─── 子组件：视频卡 ───────────────────────────────
-function VideoCard({ video }: { video: IFeedItem['video'] }) {
-  if (!video) return null;
-  return (
-    <TouchableOpacity
-      style={styles.videoCard}
-      onPress={() => Alert.alert('播放视频', video.title)}
-      activeOpacity={0.9}
-    >
-      <Image source={{ uri: video.posterUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
-      <View style={styles.videoOverlay} />
-      <View style={styles.playBtn}>
-        <Text style={styles.playIcon}>▶</Text>
-      </View>
-      <Text style={styles.videoTitle} numberOfLines={1}>{video.title}</Text>
-      {/* 慢放/镜像/下载：只在点击播放后展示，这里不渲染 */}
-    </TouchableOpacity>
-  );
-}
-
-// ─── 子组件：音频条 ───────────────────────────────
-function AudioBar({ audio }: { audio: IFeedItem['audio'] }) {
-  if (!audio) return null;
-  return (
-    <View style={styles.audioBar}>
-      <View style={styles.audioInfo}>
-        <Text style={styles.audioTitle} numberOfLines={2}>{audio.title}</Text>
-        <Text style={styles.audioBpm}>BPM {audio.bpm} · {audio.durationText}</Text>
-        {audio.tag && <Text style={styles.audioTagText}>{audio.tag}</Text>}
-      </View>
-      <TouchableOpacity style={styles.audioPlayBtn} onPress={() => Alert.alert('播放', audio.title)}>
-        <Text style={styles.audioPlayIcon}>▶</Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
-
-// ─── 帖子卡片 ─────────────────────────────────────
-function FeedCard({ item, onLike, onBookmark, onPress }: {
-  item: IFeedItem;
-  onLike: () => void;
-  onBookmark: () => void;
-  onPress: () => void;
-}) {
-  return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.96}>
-      {/* 作者信息行 */}
-      <View style={styles.authorRow}>
-        <TouchableOpacity>
-          {item.author.avatarUrl ? (
-            <Image source={{ uri: item.author.avatarUrl }} style={styles.avatar} />
-          ) : (
-            <View style={[styles.avatar, styles.avatarFallback]}>
-              <Text style={styles.avatarFallbackText}>{item.author.nickname.slice(0, 1).toUpperCase()}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-        <View style={styles.authorMeta}>
-          <View style={styles.authorNameRow}>
-            <Text style={styles.nickname}>{item.author.nickname}</Text>
-            <StyleTags tags={item.author.styleTags} levelTag={item.author.levelTag} />
-          </View>
-          <Text style={styles.timeText}>{formatTimeAgoFromString(item.createdAt)}</Text>
-        </View>
-        <TouchableOpacity style={styles.moreBtn}>
-          <Text style={styles.moreDots}>···</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* 分类标签 */}
-      <CategoryTag categoryId={item.category} />
-
-      {/* 正文 */}
-      <Text style={styles.content}>{item.content}</Text>
-
-      {/* Hashtag */}
-      {item.tags.length > 0 && (
-        <View style={styles.hashtagRow}>
-          {item.tags.map((tag) => (
-            <Text key={tag} style={styles.hashtag}>{tag} </Text>
-          ))}
-        </View>
-      )}
-
-      {/* 媒体 */}
-      {item.video && <VideoCard video={item.video} />}
-      {item.images && item.images.length > 0 && <ImageGrid images={item.images} />}
-      {item.audio && <AudioBar audio={item.audio} />}
-
-      {/* 互动栏 */}
-      <View style={styles.actionRow}>
-        <TouchableOpacity style={styles.actionBtn}>
-          <Text style={styles.actionIcon}>💬</Text>
-          <Text style={styles.actionCount}>{item.commentCount}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionBtn}>
-          <Text style={styles.actionIcon}>↗</Text>
-          <Text style={styles.actionCount}>{item.shareCount}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionBtn} onPress={onLike}>
-          <Text style={[styles.actionIcon, item.isLiked && styles.liked]}>
-            {item.isLiked ? '♥' : '♡'}
-          </Text>
-          <Text style={[styles.actionCount, item.isLiked && styles.liked]}>
-            {item.likeCount}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionBtn} onPress={onBookmark}>
-          <Text style={styles.actionIcon}>{item.isBookmarked ? '🔖' : '🏷'}</Text>
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
-  );
-}
-
-// ─── 主页面 ───────────────────────────────────────
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const [activeTab, setActiveTab] = useState<FeedTab>('为你推荐');
-  const indicatorAnim = useRef(new Animated.Value(0)).current;
-  const { feedList, loadState, errorMessage, hasMore, loadFeed, loadMore, toggleLike, toggleBookmark } = useFeedStore();
+  const navigation = useNavigation<HomeNavigation>();
+  const [activeMode, setActiveMode] = useState<FeedMode>('recommended');
+  const listRefs = useRef<Record<FeedMode, FlatList<string> | null>>({ recommended: null, following: null });
+  const offsets = useRef<Record<FeedMode, number>>({ recommended: 0, following: 0 });
+  const state = useSocialStore();
 
   useEffect(() => {
-    void loadFeed(activeTab === '为你推荐' ? 'public' : 'following');
-  }, [activeTab, loadFeed]);
+    void state.loadFeed('recommended');
+    void state.loadFeed('following');
+  }, [state.loadFeed]);
 
-  const handleTabPress = (tab: FeedTab, idx: number) => {
-    setActiveTab(tab);
-    Animated.spring(indicatorAnim, {
-      toValue: idx,
-      useNativeDriver: true,
-      tension: 120,
-      friction: 10,
-    }).start();
+  const selectMode = (mode: FeedMode) => {
+    setActiveMode(mode);
+    requestAnimationFrame(() => {
+      listRefs.current[mode]?.scrollToOffset({ offset: offsets.current[mode], animated: false });
+    });
   };
 
-  const TAB_W = SCREEN_W / 2;
-  const indicatorX = indicatorAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [TAB_W / 2 - 20, TAB_W + TAB_W / 2 - 20],
-  });
-
-  const renderItem = useCallback(({ item }: { item: IFeedItem }) => (
-    <FeedCard
-      item={item}
-      onLike={() => toggleLike(item.id)}
-      onBookmark={() => toggleBookmark(item.id)}
-      onPress={() => navigation.navigate('PostDetail', { postId: item.id })}
-    />
-  ), [navigation, toggleLike, toggleBookmark]);
-
-  const handleRefresh = () => {
-    void loadFeed(activeTab === '为你推荐' ? 'public' : 'following', true);
+  const sharePost = async (post: SocialPost) => {
+    const author = state.usersById[post.authorId];
+    await Share.share({ message: `${author?.displayName ?? '91YOYO 球友'}：${post.content}` });
   };
 
-  const handleEndReached = () => {
-    if (hasMore && loadState === 'success') void loadMore();
+  const renderPost = useCallback((mode: FeedMode, postId: string) => {
+    const post = state.postsById[postId];
+    const author = post ? state.usersById[post.authorId] : undefined;
+    if (!post || !author) return null;
+
+    return (
+      <FeedPost
+        post={post}
+        author={author}
+        recommendationReason={mode === 'recommended' ? state.recommendationReasonsByPostId[post.id] : null}
+        isLiked={state.likedPostIds.includes(post.id)}
+        isBookmarked={state.bookmarkedPostIds.includes(post.id)}
+        onOpen={() => navigation.navigate('PostDetail', { postId: post.id })}
+        onOpenAuthor={() => navigation.navigate('UserProfile', { userId: author.id })}
+        onLike={() => state.toggleLike(post.id)}
+        onBookmark={() => state.toggleBookmark(post.id)}
+        onComment={() => navigation.navigate('PostDetail', { postId: post.id })}
+        onShare={() => void sharePost(post)}
+      />
+    );
+  }, [navigation, state]);
+
+  const emptyState = (mode: FeedMode) => {
+    const feed = state.feeds[mode];
+    if (feed.loadState === 'loading' || feed.loadState === 'idle') {
+      return <FeedState kind="loading" message={mode === 'recommended' ? '正在整理适合你的内容' : '正在加载关注动态'} />;
+    }
+    if (feed.loadState === 'error') {
+      return <FeedState kind="error" title="加载失败" message={feed.errorMessage ?? '请稍后重试'} actionLabel="重新加载" onAction={() => void state.loadFeed(mode, true)} />;
+    }
+    if (mode === 'following') {
+      return <FeedState kind="empty" message="关注喜欢的球手后，他们的新动态会出现在这里" actionLabel="去探索" onAction={() => navigation.navigate('Explore')} />;
+    }
+    return <FeedState kind="empty" message="正在整理适合你的内容" actionLabel="刷新" onAction={() => void state.loadFeed(mode, true)} />;
   };
 
-  const renderFooter = () => {
-    if (loadState === 'loading_more') return <ActivityIndicator color={Colors.textMuted} style={styles.footer} />;
-    if (loadState === 'error' && feedList.length > 0) {
+  const footer = (mode: FeedMode) => {
+    const feed = state.feeds[mode];
+    if (feed.loadState === 'loading_more') {
+      return <ActivityIndicator color={Colors.brand} style={styles.footer} />;
+    }
+    if (feed.loadState === 'error' && feed.ids.length > 0) {
       return (
-        <TouchableOpacity onPress={() => void loadMore()} style={styles.footerButton}>
+        <Pressable accessibilityRole="button" onPress={() => void state.loadMore(mode)} style={styles.footerButton}>
           <Text style={styles.footerText}>加载失败，点击重试</Text>
-        </TouchableOpacity>
+        </Pressable>
       );
     }
-    if (loadState === 'success' && !hasMore && feedList.length > 0) return <Text style={styles.footerText}>已经到底了</Text>;
-    return null;
+    return <View style={styles.footerSpacer} />;
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* 顶部双 Tab */}
-      <View style={styles.tabBar}>
-        {TAB_ITEMS.map((tab, idx) => (
-          <TouchableOpacity
-            key={tab}
-            style={styles.tabItem}
-            onPress={() => handleTabPress(tab, idx)}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
-              {tab}
-            </Text>
-          </TouchableOpacity>
-        ))}
-        {/* 滑动指示线 */}
-        <Animated.View
-          style={[styles.tabIndicator, { transform: [{ translateX: indicatorX }] }]}
-        />
+    <View style={[styles.screen, { paddingTop: insets.top }]}>
+      <View style={styles.topBar}>
+        <Text style={styles.wordmark}>91YOYO</Text>
       </View>
-
-      {/* 信息流 */}
-      <FlatList
-        data={feedList}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        onEndReached={handleEndReached}
-        onEndReachedThreshold={0.5}
-        ListEmptyComponent={
-          loadState === 'loading' || loadState === 'refreshing'
-            ? <ActivityIndicator color={Colors.textMuted} style={styles.emptyState} />
-            : <View style={styles.emptyState}>
-                <Text style={styles.emptyTitle}>{errorMessage ? '加载失败' : '还没有动态'}</Text>
-                <Text style={styles.emptyText}>{errorMessage ?? '成为第一个分享练习的人吧。'}</Text>
-                {errorMessage && <TouchableOpacity onPress={handleRefresh} style={styles.retryButton}><Text style={styles.retryText}>重新加载</Text></TouchableOpacity>}
-              </View>
-        }
-        ListFooterComponent={renderFooter}
-        refreshControl={<RefreshControl refreshing={loadState === 'refreshing'} onRefresh={handleRefresh} tintColor={Colors.white} />}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.listContent}
-        ItemSeparatorComponent={() => <View style={styles.divider} />}
-      />
+      <View style={styles.tabs}>
+        {MODES.map(({ mode, label }) => {
+          const active = activeMode === mode;
+          return (
+            <Pressable
+              key={mode}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: active }}
+              onPress={() => selectMode(mode)}
+              style={styles.tab}
+            >
+              <Text style={[styles.tabText, active && styles.tabTextActive]}>{label}</Text>
+              <View style={[styles.indicator, active && styles.indicatorActive]} />
+            </Pressable>
+          );
+        })}
+      </View>
+      <View style={styles.feedArea}>
+        {MODES.map(({ mode }) => {
+          const feed = state.feeds[mode];
+          const active = activeMode === mode;
+          return (
+            <View key={mode} pointerEvents={active ? 'auto' : 'none'} style={[styles.listLayer, !active && styles.listLayerHidden]}>
+              <FlatList
+                ref={(ref) => { listRefs.current[mode] = ref; }}
+                data={feed.ids}
+                keyExtractor={(postId) => postId}
+                renderItem={({ item }) => renderPost(mode, item)}
+                ItemSeparatorComponent={() => <View style={styles.divider} />}
+                ListEmptyComponent={emptyState(mode)}
+                ListFooterComponent={footer(mode)}
+                refreshControl={
+                  <RefreshControl
+                    refreshing={feed.loadState === 'refreshing'}
+                    onRefresh={() => void state.loadFeed(mode, true)}
+                    tintColor={Colors.brand}
+                  />
+                }
+                onScroll={(event) => { offsets.current[mode] = event.nativeEvent.contentOffset.y; }}
+                scrollEventThrottle={16}
+                onEndReached={() => {
+                  if (active && feed.loadState === 'success' && feed.hasMore) void state.loadMore(mode);
+                }}
+                onEndReachedThreshold={0.45}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={feed.ids.length === 0 ? styles.emptyList : styles.listContent}
+              />
+            </View>
+          );
+        })}
+      </View>
     </View>
   );
 }
 
-// ─── 样式 ─────────────────────────────────────────
-const GRID_GAP = 3;
-const GRID_ITEM_W = (SCREEN_W - 32 - GRID_GAP * 2) / 3;
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bg },
-
-  // ── TabBar ──
-  tabBar: {
-    flexDirection: 'row',
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#1a1d22',
-    position: 'relative',
-  },
-  tabItem: { flex: 1, alignItems: 'center', paddingVertical: 13 },
-  tabText: { color: Colors.textMuted, fontSize: 16, fontWeight: '600' },
-  tabTextActive: { color: Colors.white, fontWeight: '800' },
-  tabIndicator: {
-    position: 'absolute',
-    bottom: 0,
-    width: 40,
-    height: 2.5,
-    backgroundColor: Colors.white,
-    borderRadius: 2,
-  },
-
-  // ── 列表 ──
-  listContent: { paddingBottom: 24 },
-  divider: { height: 0.5, backgroundColor: '#1a1d22', marginHorizontal: 16 },
-  emptyState: { minHeight: 220, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24, gap: 8 },
-  emptyTitle: { color: Colors.white, fontSize: 16, fontWeight: '700' },
-  emptyText: { color: Colors.textMuted, fontSize: 13, textAlign: 'center' },
-  retryButton: { backgroundColor: Colors.white, borderRadius: 8, paddingHorizontal: 16, paddingVertical: 8, marginTop: 8 },
-  retryText: { color: Colors.black, fontSize: 13, fontWeight: '700' },
-  footer: { paddingVertical: 16 },
-  footerButton: { alignItems: 'center', paddingVertical: 16 },
-  footerText: { color: Colors.textMuted, fontSize: 12, textAlign: 'center', paddingVertical: 16 },
-
-  // ── 卡片 ──
-  card: { paddingHorizontal: 16, paddingVertical: 14, gap: 10 },
-
-  // ── 作者行 ──
-  authorRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  avatar: {
-    width: 44, height: 44, borderRadius: 22,
-    borderWidth: 1.5, borderColor: '#2a2d33',
-  },
-  avatarFallback: { backgroundColor: '#16181c', alignItems: 'center', justifyContent: 'center' },
-  avatarFallbackText: { color: Colors.textSecondary, fontSize: 17, fontWeight: '800' },
-  authorMeta: { flex: 1 },
-  authorNameRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 },
-  nickname: { color: Colors.white, fontSize: 15, fontWeight: '700' },
-  timeText: { color: Colors.textMuted, fontSize: 12, marginTop: 2 },
-  moreBtn: { paddingLeft: 8, paddingTop: 2 },
-  moreDots: { color: Colors.textMuted, fontSize: 18, letterSpacing: 1 },
-
-  // ── 花式标签 ──
-  styleTagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
-  styleTag: {
-    backgroundColor: '#1c2028',
-    borderRadius: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderWidth: 0.5,
-    borderColor: '#2e3340',
-  },
-  styleTagText: { color: '#8899bb', fontSize: 11, fontWeight: '700' },
-  levelTag: { backgroundColor: '#0f1a2e', borderColor: '#1e3a5f' },
-  levelTagText: { color: '#67aaff', fontSize: 11, fontWeight: '700' },
-
-  // ── 分类标签 ──
-  categoryTag: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#111518',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderWidth: 0.5,
-    borderColor: '#252930',
-  },
-  categoryTagText: { color: Colors.textMuted, fontSize: 12 },
-
-  // ── 正文 ──
-  content: { color: Colors.textPrimary, fontSize: 15, lineHeight: 22 },
-  hashtagRow: { flexDirection: 'row', flexWrap: 'wrap' },
-  hashtag: { color: '#1d9bf0', fontSize: 14 },
-
-  // ── 视频 ──
-  videoCard: {
-    width: '100%',
-    aspectRatio: 16 / 9,
-    borderRadius: 14,
-    overflow: 'hidden',
-    backgroundColor: '#111',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  videoOverlay: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-  },
-  playBtn: {
-    width: 52, height: 52, borderRadius: 26,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    justifyContent: 'center', alignItems: 'center',
-    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.4)',
-  },
-  playIcon: { color: '#fff', fontSize: 20, marginLeft: 3 },
-  videoTitle: {
-    position: 'absolute', bottom: 10, left: 12, right: 12,
-    color: 'rgba(255,255,255,0.75)', fontSize: 12,
-  },
-
-  // ── 图片 ──
-  singleImage: { width: '100%', aspectRatio: 4 / 3, borderRadius: 14 },
-  twoGrid: { flexDirection: 'row', gap: GRID_GAP },
-  twoGridItem: { flex: 1, aspectRatio: 1, borderRadius: 10 },
-  nineGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: GRID_GAP },
-  nineGridItem: { width: GRID_ITEM_W, height: GRID_ITEM_W, borderRadius: 8 },
-
-  // ── 音频条 ──
-  audioBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#0e1117',
-    borderRadius: 14,
-    borderWidth: 0.5,
-    borderColor: '#1e2330',
-    padding: 12,
-    gap: 10,
-  },
-  audioInfo: { flex: 1 },
-  audioTitle: { color: Colors.textPrimary, fontSize: 13, fontWeight: '600' },
-  audioBpm: { color: Colors.textMuted, fontSize: 11, marginTop: 2 },
-  audioTagText: { color: Colors.textSecondary, fontSize: 11, marginTop: 4 },
-  audioPlayBtn: {
-    width: 38, height: 38, borderRadius: 19,
-    backgroundColor: Colors.white,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  audioPlayIcon: { color: Colors.black, fontSize: 14, fontWeight: '800', marginLeft: 2 },
-
-  // ── 互动栏 ──
-  actionRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingTop: 4,
-  },
-  actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 4 },
-  actionIcon: { color: Colors.textMuted, fontSize: 18 },
-  actionCount: { color: Colors.textMuted, fontSize: 13 },
-  liked: { color: '#F91880' },
+  screen: { flex: 1, backgroundColor: Colors.background },
+  topBar: { height: 44, justifyContent: 'center', paddingHorizontal: 16 },
+  wordmark: { color: Colors.textPrimary, fontSize: 18, fontWeight: '900' },
+  tabs: { height: 48, flexDirection: 'row', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.border },
+  tab: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'flex-end' },
+  tabText: { color: Colors.textMuted, fontSize: 15, fontWeight: '600', paddingBottom: 10 },
+  tabTextActive: { color: Colors.textPrimary, fontWeight: '800' },
+  indicator: { width: 48, height: 2, backgroundColor: 'transparent' },
+  indicatorActive: { backgroundColor: Colors.brand },
+  feedArea: { flex: 1, position: 'relative' },
+  listLayer: { ...StyleSheet.absoluteFill, backgroundColor: Colors.background },
+  listLayerHidden: { opacity: 0 },
+  listContent: { paddingBottom: 18 },
+  emptyList: { flexGrow: 1 },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: Colors.border },
+  footer: { paddingVertical: 18 },
+  footerButton: { minHeight: 52, alignItems: 'center', justifyContent: 'center' },
+  footerText: { color: Colors.brand, fontSize: 13, fontWeight: '600' },
+  footerSpacer: { height: 12 },
 });
