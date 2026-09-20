@@ -34,10 +34,10 @@
 **Interfaces:**
 - Produces: `SocialComment`, `mockComments`, `commentsForPost`, and `normalizeCommentBody`.
 
-- [ ] Write failing tests for stable comment IDs, valid post/author links, chronological ordering, trim, blank rejection, and 280-character rejection.
-- [ ] Run targeted tests and confirm expected failures.
-- [ ] Add comment types, fixtures, and pure helpers.
-- [ ] Re-run targeted tests and commit `feat: add mock comment domain`.
+- [x] Write failing tests for stable comment IDs, valid post/author links, chronological ordering, trim, blank rejection, and 280-character rejection.
+- [x] Run targeted tests and confirm expected failures.
+- [x] Add comment types, fixtures, and pure helpers.
+- [x] Re-run targeted tests and commit `feat: add mock comment domain`.
 
 ### Task 2: Persisted Comment State
 
@@ -48,10 +48,10 @@
 **Interfaces:**
 - Produces: `commentsById`, `likedCommentIds`, `createdCommentsById`, `loadPost`, `addComment`, and `toggleCommentLike`.
 
-- [ ] Write failing store tests for direct post loading, comment creation/count synchronization, comment likes, persistence hydration, malformed records, and reset.
-- [ ] Run targeted tests and confirm expected failures.
-- [ ] Implement normalized comment state and versioned persistence validation.
-- [ ] Re-run targeted tests and commit `feat: persist mock comments`.
+- [x] Write failing store tests for direct post loading, comment creation/count synchronization, comment likes, persistence hydration, malformed records, and reset.
+- [x] Run targeted tests and confirm expected failures.
+- [x] Implement normalized comment state and versioned persistence validation.
+- [x] Re-run targeted tests and commit `feat: persist mock comments`.
 
 ### Task 3: Shared Detail Experience
 
@@ -66,11 +66,11 @@
 - Consumes: Task 2 Social Store state/actions.
 - Produces: synchronized detail, comment list, and fixed composer.
 
-- [ ] Replace the legacy adapter read with normalized post/author/comment selectors and `loadPost` fallback.
-- [ ] Rebuild the post body with shared components and route video media to `VideoFeed`.
-- [ ] Render first-level comments with author, relative time, body, and local like controls.
-- [ ] Add a keyboard-safe 280-character composer with inline validation and immediate insertion.
-- [ ] Remove the unused feed adapter, run TypeScript, and commit `feat: rebuild post detail comments`.
+- [x] Replace the legacy adapter read with normalized post/author/comment selectors and `loadPost` fallback.
+- [x] Rebuild the post body with shared components and route video media to `VideoFeed`.
+- [x] Render first-level comments with author, relative time, body, and local like controls.
+- [x] Add a keyboard-safe 280-character composer with inline validation and immediate insertion.
+- [x] Remove the unused feed adapter, run TypeScript, and commit `feat: rebuild post detail comments`.
 
 ### Task 4: Verification And Integration
 
@@ -78,7 +78,7 @@
 - Modify: `docs/ROADMAP.md`
 - Modify: `docs/superpowers/plans/2026-09-20-post-detail-comments.md`
 
-- [ ] Validate detail, comment creation, comment like, persistence, and video entry on iPhone simulator.
-- [ ] Run `npm test`, `npx tsc --noEmit`, `npx expo export --platform ios`, and `git diff --check`.
-- [ ] Update roadmap and plan completion state.
+- [x] Validate detail, comment creation, comment like, persistence, and video entry on iPhone simulator.
+- [x] Run `npm test`, `npx tsc --noEmit`, `npx expo export --platform ios`, and `git diff --check`.
+- [x] Update roadmap and plan completion state.
 - [ ] Commit, fast-forward `main`, re-run merged tests, push GitHub, and restore Metro on `8081`.
