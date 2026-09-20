@@ -4,8 +4,7 @@ export interface IFeedAuthor {
   uid: string;
   nickname: string;
   avatarUrl: string;
-  styleTags: StyleTagType[];      // 擅长花式，1A-5A 多选（替代旧 levelTag）
-  levelTag?: string;              // 保留兼容（如 'CYSO选手'、'藏家' 等特殊标签）
+  styleTags: StyleTagType[];
   brandCertification?: {          // 品牌认证（v1.5）
     brandName: string;
     role: '队员' | '大使';
