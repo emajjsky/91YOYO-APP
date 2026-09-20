@@ -148,6 +148,10 @@ export default function ExploreScreen() {
   const feed = state.feeds.recommended;
 
   const openPost = (post: SocialPost) => {
+    if (post.media.type === 'video') {
+      navigation.navigate('VideoFeed', { initialPostId: post.id });
+      return;
+    }
     navigation.navigate('PostDetail', { postId: post.id });
   };
 

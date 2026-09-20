@@ -13,6 +13,7 @@ export interface FeedPostProps {
   isLiked: boolean;
   isBookmarked: boolean;
   onOpen(): void;
+  onOpenMedia?(): void;
   onOpenAuthor(): void;
   onLike(): void;
   onBookmark(): void;
@@ -21,7 +22,7 @@ export interface FeedPostProps {
   onMore?(): void;
 }
 
-export default function FeedPost({ post, author, recommendationReason, isLiked, isBookmarked, onOpen, onOpenAuthor, onLike, onBookmark, onComment, onShare, onMore }: FeedPostProps) {
+export default function FeedPost({ post, author, recommendationReason, isLiked, isBookmarked, onOpen, onOpenMedia, onOpenAuthor, onLike, onBookmark, onComment, onShare, onMore }: FeedPostProps) {
   return (
     <Pressable accessibilityRole="button" onPress={onOpen} style={styles.post}>
       {recommendationReason ? <Text numberOfLines={1} style={styles.reason}>推荐 · {recommendationReason}</Text> : null}
@@ -29,7 +30,7 @@ export default function FeedPost({ post, author, recommendationReason, isLiked, 
       <View style={styles.body}>
         <Text style={styles.content}>{post.content}</Text>
         {post.hashtags.length > 0 ? <Text style={styles.hashtags}>{post.hashtags.join(' ')}</Text> : null}
-        <PostMedia media={post.media} onOpen={onOpen} />
+        <PostMedia media={post.media} onOpen={onOpenMedia ?? onOpen} />
         <PostActions likeCount={post.likeCount} commentCount={post.commentCount} shareCount={post.shareCount} isLiked={isLiked} isBookmarked={isBookmarked} onLike={onLike} onBookmark={onBookmark} onComment={onComment} onShare={onShare} />
       </View>
     </Pressable>

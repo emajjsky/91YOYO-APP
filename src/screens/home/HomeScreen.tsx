@@ -71,6 +71,9 @@ export default function HomeScreen() {
         isLiked={state.likedPostIds.includes(post.id)}
         isBookmarked={state.bookmarkedPostIds.includes(post.id)}
         onOpen={() => navigation.navigate('PostDetail', { postId: post.id })}
+        onOpenMedia={() => post.media.type === 'video'
+          ? navigation.navigate('VideoFeed', { initialPostId: post.id })
+          : navigation.navigate('PostDetail', { postId: post.id })}
         onOpenAuthor={() => navigation.navigate('UserProfile', { userId: author.id })}
         onLike={() => state.toggleLike(post.id)}
         onBookmark={() => state.toggleBookmark(post.id)}
