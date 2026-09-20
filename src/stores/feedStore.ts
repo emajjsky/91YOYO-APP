@@ -114,7 +114,7 @@ function projectFeed(state: SocialState, scope: FeedScope) {
 
 const initialScope: FeedScope = 'public';
 
-// Temporary adapter for Home/PostDetail until Task 7 moves them to useSocialStore.
+// Temporary adapter for PostDetail until the detail phase moves it to useSocialStore.
 export const useFeedStore = create<FeedState>((set, get) => ({
   ...projectFeed(useSocialStore.getState(), initialScope),
   activeScope: initialScope,
