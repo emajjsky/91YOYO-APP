@@ -81,4 +81,4 @@
 - [x] Validate detail, comment creation, comment like, persistence, and video entry on iPhone simulator.
 - [x] Run `npm test`, `npx tsc --noEmit`, `npx expo export --platform ios`, and `git diff --check`.
 - [x] Update roadmap and plan completion state.
-- [ ] Commit, fast-forward `main`, re-run merged tests, push GitHub, and restore Metro on `8081`.
+- [x] Commit, fast-forward `main`, re-run merged tests, push GitHub, and restore Metro on `8081`.
