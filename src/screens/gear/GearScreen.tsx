@@ -101,7 +101,7 @@ export default function GearScreen() {
         })}
       </ScrollView>
 
-      {/* 九宫格 */}
+      {/* 藏品列表 */}
       <FlatList
         data={sorted}
         keyExtractor={(item) => item.id}

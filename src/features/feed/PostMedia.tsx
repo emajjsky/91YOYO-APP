@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import {
+  FlatList,
   Image,
   type ImageRequireSource,
   type ImageURISource,
+  type LayoutChangeEvent,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
   Pressable,
   StyleSheet,
-  type StyleProp,
   Text,
   View,
-  type ViewStyle,
   type GestureResponderEvent,
 } from 'react-native';
 import { Music2, Play, X } from 'lucide-react-native';
@@ -16,7 +18,7 @@ import ImageViewing from 'react-native-image-viewing';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/colors';
 import type { MediaContent } from '../social/types';
-import { getImageGridLayout, getSingleImageAspectRatio } from './imageGridLayout';
+import { getImageGalleryLayout, getSingleImageAspectRatio } from './imageGalleryLayout';
 
 function imageSource(uri: number | string): ImageRequireSource | ImageURISource {
   return typeof uri === 'number' ? uri : { uri };
@@ -35,8 +37,10 @@ function ImageMedia({ media }: {
   const insets = useSafeAreaInsets();
   const [viewerVisible, setViewerVisible] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(0);
-  const layout = getImageGridLayout(media.assets.length);
-  const assets = media.assets.slice(0, layout.visibleCount);
+  const [galleryWidth, setGalleryWidth] = useState(0);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const layout = getImageGalleryLayout(media.assets.length);
+  const assets = media.assets.slice(0, layout.imageCount);
   if (assets.length === 0) return null;
 
   const openImage = (index: number) => {
@@ -44,25 +48,15 @@ function ImageMedia({ media }: {
     setViewerVisible(true);
   };
 
-  const renderTile = (index: number, style: StyleProp<ViewStyle>) => {
-    const asset = assets[index];
-    const isOverflowTile = index === layout.visibleCount - 1 && layout.overflowCount > 0;
-    return (
-      <Pressable
-        accessibilityLabel={`查看第${index + 1}张图片`}
-        accessibilityRole="imagebutton"
-        key={asset.id}
-        onPress={stopAndRun(() => openImage(index))}
-        style={style}
-      >
-        <Image source={imageSource(asset.uri)} style={StyleSheet.absoluteFill} resizeMode="cover" />
-        {isOverflowTile ? (
-          <View style={styles.overflowShade}>
-            <Text style={styles.overflowText}>+{layout.overflowCount}</Text>
-          </View>
-        ) : null}
-      </Pressable>
-    );
+  const updateGalleryWidth = (event: LayoutChangeEvent) => {
+    const nextWidth = Math.round(event.nativeEvent.layout.width);
+    if (nextWidth > 0 && nextWidth !== galleryWidth) setGalleryWidth(nextWidth);
+  };
+
+  const updateActiveIndex = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (galleryWidth <= 0) return;
+    const nextIndex = Math.round(event.nativeEvent.contentOffset.x / galleryWidth);
+    setActiveIndex(Math.min(assets.length - 1, Math.max(0, nextIndex)));
   };
 
   const viewer = (
@@ -101,34 +95,39 @@ function ImageMedia({ media }: {
 
   return (
     <>
-      <View style={styles.imageGrid}>
-        {layout.variant === 'split' ? (
-          <View style={styles.imageGridRow}>
-            {renderTile(0, styles.gridTile)}
-            {renderTile(1, styles.gridTile)}
-          </View>
-        ) : null}
-        {layout.variant === 'featured' ? (
-          <View style={styles.imageGridRow}>
-            {renderTile(0, styles.gridTile)}
-            <View style={styles.gridColumn}>
-              {renderTile(1, styles.gridTile)}
-              {renderTile(2, styles.gridTile)}
-            </View>
-          </View>
-        ) : null}
-        {layout.variant === 'quad' ? (
-          <>
-            <View style={styles.imageGridRow}>
-              {renderTile(0, styles.gridTile)}
-              {renderTile(1, styles.gridTile)}
-            </View>
-            <View style={styles.imageGridRow}>
-              {renderTile(2, styles.gridTile)}
-              {renderTile(3, styles.gridTile)}
-            </View>
-          </>
-        ) : null}
+      <View onLayout={updateGalleryWidth} style={styles.carousel}>
+        {galleryWidth > 0 ? (
+          <FlatList
+            accessibilityLabel={`${assets.length}张图片，当前第${activeIndex + 1}张`}
+            data={assets}
+            getItemLayout={(_, index) => ({ index, length: galleryWidth, offset: galleryWidth * index })}
+            horizontal
+            keyExtractor={(asset) => asset.id}
+            onMomentumScrollEnd={updateActiveIndex}
+            pagingEnabled
+            renderItem={({ item: asset, index }) => (
+              <Pressable
+                accessibilityLabel={`查看第${index + 1}张图片`}
+                accessibilityRole="imagebutton"
+                onPress={stopAndRun(() => openImage(index))}
+                style={[styles.carouselPage, { width: galleryWidth, height: galleryWidth * 3 / 4 }]}
+              >
+                <Image
+                  source={imageSource(asset.uri)}
+                  style={{ width: galleryWidth, height: galleryWidth * 3 / 4 }}
+                  resizeMode="cover"
+                />
+              </Pressable>
+            )}
+            showsHorizontalScrollIndicator={false}
+            style={StyleSheet.absoluteFill}
+          />
+        ) : (
+          <Image source={imageSource(assets[0].uri)} style={StyleSheet.absoluteFill} resizeMode="cover" />
+        )}
+        <View pointerEvents="none" style={styles.pageCountBadge}>
+          <Text style={styles.pageCountText}>{activeIndex + 1} / {assets.length}</Text>
+        </View>
       </View>
       {viewer}
     </>
@@ -186,12 +185,10 @@ export default function PostMedia({ media, onOpen }: { media: MediaContent; onOp
 
 const styles = StyleSheet.create({
   singleImage: { width: '100%', borderRadius: 8, backgroundColor: Colors.surface },
-  imageGrid: { width: '100%', aspectRatio: 1.6, gap: 3, borderRadius: 8, overflow: 'hidden', backgroundColor: Colors.surface },
-  imageGridRow: { flex: 1, flexDirection: 'row', gap: 3 },
-  gridColumn: { flex: 1, gap: 3 },
-  gridTile: { flex: 1, minWidth: 0, overflow: 'hidden', backgroundColor: Colors.surface },
-  overflowShade: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0, 0, 0, 0.58)' },
-  overflowText: { color: Colors.textPrimary, fontSize: 30, fontWeight: '700' },
+  carousel: { width: '100%', aspectRatio: 4 / 3, borderRadius: 8, overflow: 'hidden', backgroundColor: Colors.surface },
+  carouselPage: { overflow: 'hidden', backgroundColor: Colors.surface },
+  pageCountBadge: { position: 'absolute', top: 9, right: 9, minWidth: 44, height: 26, paddingHorizontal: 8, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(9, 11, 13, 0.76)' },
+  pageCountText: { color: Colors.textPrimary, fontSize: 12, fontWeight: '700', fontVariant: ['tabular-nums'] },
   viewerHeader: { position: 'absolute', zIndex: 1, top: 0, left: 0, right: 0, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' },
   viewerCount: { position: 'absolute', left: 0, right: 0, textAlign: 'center', color: Colors.textPrimary, fontSize: 14, fontWeight: '700' },
   viewerClose: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0, 0, 0, 0.5)' },

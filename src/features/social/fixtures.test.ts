@@ -123,7 +123,7 @@ describe('social fixtures', () => {
     expect(mockUsers.every((user) => !/(教练|选手|表演者)/.test(user.bio))).toBe(true);
   });
 
-  it('keeps larger albums to verify the four-tile overflow treatment', () => {
+  it('keeps larger albums to verify horizontal carousel paging', () => {
     const albumSizes = mockPosts.flatMap((post) =>
       post.media.type === 'images' ? [post.media.assets.length] : [],
     );
