@@ -8,8 +8,9 @@ import { useNavigation } from '@react-navigation/native';
 import { Colors } from '../../constants/colors';
 import { POST_CATEGORIES } from '../../constants/categories';
 import type { PostCategoryId } from '../../constants/categories';
+import { mediaSelectionLimit, type SelectableMediaType } from './composeMediaPolicy';
 
-type MediaType = 'none' | 'image' | 'video' | 'music';
+type MediaType = 'none' | SelectableMediaType;
 type Visibility = '公开' | '仅关注者' | '仅自己';
 
 export default function ComposeScreen() {
@@ -35,9 +36,9 @@ export default function ComposeScreen() {
   };
 
   const MEDIA_OPTIONS: { type: MediaType; icon: string; label: string; note: string }[] = [
-    { type: 'image', icon: '📷', label: '图片', note: '最多 9 张' },
-    { type: 'video', icon: '🎬', label: '视频', note: '最多 1 条' },
-    { type: 'music', icon: '🎵', label: '音乐', note: '最多 1 条' },
+    { type: 'image', icon: '📷', label: '图片', note: `最多 ${mediaSelectionLimit('image')} 张` },
+    { type: 'video', icon: '🎬', label: '视频', note: `最多 ${mediaSelectionLimit('video')} 条` },
+    { type: 'music', icon: '🎵', label: '音乐', note: `最多 ${mediaSelectionLimit('music')} 条` },
   ];
 
   const VISIBILITY_OPTIONS: Visibility[] = ['公开', '仅关注者', '仅自己'];
@@ -82,7 +83,7 @@ export default function ComposeScreen() {
         {mediaType === 'image' && (
           <TouchableOpacity style={styles.mediaPlaceholder}>
             <Text style={styles.mediaPlaceholderIcon}>📷</Text>
-            <Text style={styles.mediaPlaceholderText}>选择图片（0/9）</Text>
+            <Text style={styles.mediaPlaceholderText}>选择图片（0/{mediaSelectionLimit('image')}）</Text>
           </TouchableOpacity>
         )}
         {mediaType === 'video' && (

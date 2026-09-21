@@ -129,6 +129,7 @@ describe('social fixtures', () => {
     );
 
     expect(albumSizes).toEqual(expect.arrayContaining([4, 6, 9]));
+    expect(Math.max(...albumSizes)).toBe(9);
   });
 
   it('uses Chinese visible names and audio metadata in the current mock phase', () => {

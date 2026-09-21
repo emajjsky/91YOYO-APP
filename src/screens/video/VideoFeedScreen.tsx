@@ -228,7 +228,6 @@ export default function VideoFeedScreen({ navigation, route }: Props) {
         <Pressable accessibilityLabel="返回" accessibilityRole="button" hitSlop={8} onPress={navigation.goBack} style={styles.backButton}>
           <ChevronLeft color={Colors.textPrimary} size={28} strokeWidth={2} />
         </Pressable>
-        <Text style={styles.counter}>{activeIndex + 1} / {videos.length}</Text>
       </View>
     </View>
   );
@@ -253,9 +252,8 @@ const styles = StyleSheet.create({
   handle: { color: Colors.textPrimary, fontSize: 15, fontWeight: '800', textShadowColor: Colors.black, textShadowRadius: 4 },
   content: { color: Colors.textPrimary, fontSize: 14, lineHeight: 20, textShadowColor: Colors.black, textShadowRadius: 4 },
   hashtags: { color: Colors.textPrimary, fontSize: 13, fontWeight: '600', textShadowColor: Colors.black, textShadowRadius: 4 },
-  topBar: { position: 'absolute', left: 10, right: 14, height: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  topBar: { position: 'absolute', left: 10, right: 14, height: 44, flexDirection: 'row', alignItems: 'center' },
   backButton: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0, 0, 0, 0.48)' },
-  counter: { color: Colors.textPrimary, fontSize: 13, fontWeight: '700', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 4, backgroundColor: 'rgba(0, 0, 0, 0.48)' },
   emptyScreen: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: Colors.black },
   emptyTitle: { color: Colors.textPrimary, fontSize: 16, fontWeight: '700' },
   emptyMessage: { color: Colors.textMuted, fontSize: 13 },

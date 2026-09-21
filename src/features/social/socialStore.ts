@@ -146,7 +146,7 @@ function isMediaContent(value: unknown): value is SocialPost['media'] {
     case 'none':
       return true;
     case 'images':
-      return Array.isArray(value.assets) && value.assets.every((asset) =>
+      return Array.isArray(value.assets) && value.assets.length >= 1 && value.assets.length <= 9 && value.assets.every((asset) =>
         isRecord(asset) &&
         typeof asset.id === 'string' &&
         isAssetUri(asset.uri) &&

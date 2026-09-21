@@ -583,6 +583,19 @@ describe('socialStore', () => {
         assets: [{ id: 'image-1', uri: {}, aspectRatio: 'wide', alt: 4 }],
       },
     };
+    const tooManyImages = {
+      ...validPost,
+      id: 'created-too-many-images',
+      media: {
+        type: 'images',
+        assets: Array.from({ length: 10 }, (_, index) => ({
+          id: `image-${index + 1}`,
+          uri: `image-${index + 1}.jpg`,
+          aspectRatio: 1,
+          alt: `图片 ${index + 1}`,
+        })),
+      },
+    };
     const malformedReservedVideo = {
       ...validPost,
       id: 'created-bad-reserved-video',
@@ -651,6 +664,7 @@ describe('socialStore', () => {
           [validPost.id]: validPost,
           [missingMedia.id]: missingMedia,
           [malformedImages.id]: malformedImages,
+          [tooManyImages.id]: tooManyImages,
           [malformedReservedVideo.id]: malformedReservedVideo,
           [malformedReadyVideo.id]: malformedReadyVideo,
           [malformedAudio.id]: malformedAudio,
