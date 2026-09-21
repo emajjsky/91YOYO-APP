@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import {
-  View, Text, Image, TouchableOpacity,
+  View, Text, Image, type ImageSourcePropType, Pressable,
   ScrollView, FlatList, StyleSheet, Dimensions,
 } from 'react-native';
+import { Plus } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/colors';
 
@@ -22,7 +23,7 @@ interface IGearItem {
   id: string;
   name: string;
   category: GearCategory;
-  imageUrl: string;
+  imageUri: number | string;
   weight?: string;
   material?: string;
   isPinned?: boolean;
@@ -31,36 +32,22 @@ interface IGearItem {
 
 const MOCK_GEAR: IGearItem[] = [
   {
-    id: 'g1', name: 'CLYW Chief 极光双金属',
+    id: 'g1', name: '蓝色日常练习球',
     category: '悠悠球',
-    imageUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&auto=format&fit=crop&q=80',
-    weight: '65.8g', material: '铝合金 + 不锈钢', isPinned: true, likes: 38,
+    imageUri: require('../../../assets/mock/social/yoyo-blue.jpg') as number,
+    material: '塑料', isPinned: true, likes: 38,
   },
   {
-    id: 'g2', name: 'Turning Point E-Gen 钛合金',
-    category: '悠悠球',
-    imageUrl: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=400&auto=format&fit=crop&q=80',
-    weight: '64.2g', material: '纯钛一体', isPinned: true, likes: 61,
-  },
-  {
-    id: 'g3', name: 'YYF 特制多色编绳线 ×10',
-    category: '线',
-    imageUrl: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&auto=format&fit=crop&q=80',
-    material: '100% 聚酯纤维', likes: 5,
-  },
-  {
-    id: 'g4', name: 'NSK 金色凹轴 ×3',
+    id: 'g2', name: '备用轴承与回收系统',
     category: '配件',
-    imageUrl: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=400&auto=format&fit=crop&q=80',
-    material: '精密级钢', likes: 12,
-  },
-  {
-    id: 'g5', name: 'CYSO 2025 上海站 季军奖状',
-    category: '奖状',
-    imageUrl: 'https://images.unsplash.com/photo-1567427018141-0584cfcbf1b8?w=400&auto=format&fit=crop&q=80',
-    isPinned: false, likes: 147,
+    imageUri: require('../../../assets/mock/social/yoyo-bearing.jpg') as number,
+    material: '金属轴承', likes: 12,
   },
 ];
+
+function imageSource(uri: number | string): ImageSourcePropType {
+  return typeof uri === 'number' ? uri : { uri };
+}
 
 export default function GearScreen() {
   const insets = useSafeAreaInsets();
@@ -78,9 +65,10 @@ export default function GearScreen() {
       {/* 顶部导航 */}
       <View style={styles.navbar}>
         <Text style={styles.navTitle}>我的装备陈列室</Text>
-        <TouchableOpacity style={styles.addBtn}>
-          <Text style={styles.addBtnText}>＋ 添加藏品</Text>
-        </TouchableOpacity>
+        <Pressable accessibilityRole="button" style={styles.addBtn}>
+          <Plus color={Colors.textPrimary} size={17} strokeWidth={2.2} />
+          <Text style={styles.addBtnText}>添加藏品</Text>
+        </Pressable>
       </View>
 
       {/* 分类筛选 */}
@@ -89,18 +77,18 @@ export default function GearScreen() {
         style={styles.catScroll}
         contentContainerStyle={styles.catContent}
       >
-        <TouchableOpacity
+        <Pressable
           style={[styles.catPill, activeCategory === 'all' && styles.catPillActive]}
           onPress={() => setActiveCategory('all')}
         >
           <Text style={[styles.catText, activeCategory === 'all' && styles.catTextActive]}>
             全部
           </Text>
-        </TouchableOpacity>
+        </Pressable>
         {GEAR_CATS.map((c) => {
           const active = activeCategory === c.id;
           return (
-            <TouchableOpacity
+            <Pressable
               key={c.id}
               style={[styles.catPill, active && styles.catPillActive]}
               onPress={() => setActiveCategory(c.id)}
@@ -108,7 +96,7 @@ export default function GearScreen() {
               <Text style={[styles.catText, active && styles.catTextActive]}>
                 {c.emoji} {c.id}
               </Text>
-            </TouchableOpacity>
+            </Pressable>
           );
         })}
       </ScrollView>
@@ -128,9 +116,9 @@ export default function GearScreen() {
           </View>
         )}
         renderItem={({ item }) => (
-          <TouchableOpacity style={styles.card} activeOpacity={0.85}>
+          <Pressable style={styles.card}>
             <View style={styles.imgWrapper}>
-              <Image source={{ uri: item.imageUrl }} style={styles.cardImage} resizeMode="cover" />
+              <Image source={imageSource(item.imageUri)} style={styles.cardImage} resizeMode="cover" />
               {item.isPinned && (
                 <View style={styles.pinBadge}>
                   <Text style={styles.pinText}>📌 置顶</Text>
@@ -151,7 +139,7 @@ export default function GearScreen() {
                 <Text style={styles.likeText}>♡ {item.likes}</Text>
               </View>
             </View>
-          </TouchableOpacity>
+          </Pressable>
         )}
       />
     </View>
@@ -166,7 +154,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0.5, borderBottomColor: '#1a1d22',
   },
   navTitle: { color: Colors.white, fontSize: 18, fontWeight: '800' },
-  addBtn: {},
+  addBtn: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 5 },
   addBtnText: { color: Colors.white, fontSize: 13, fontWeight: '600' },
 
   catScroll: { flexGrow: 0, borderBottomWidth: 0.5, borderBottomColor: '#1a1d22' },
@@ -187,7 +175,7 @@ const styles = StyleSheet.create({
 
   card: {
     width: CARD_W, backgroundColor: '#0c0f14',
-    borderRadius: 14, overflow: 'hidden',
+    borderRadius: 8, overflow: 'hidden',
     borderWidth: 0.5, borderColor: '#1e2330',
   },
   imgWrapper: { width: '100%', aspectRatio: 1 },

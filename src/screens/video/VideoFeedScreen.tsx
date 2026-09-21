@@ -11,8 +11,10 @@ import {
   View,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Bookmark, ChevronLeft, Clock3, Heart, MessageCircle, Share2 } from 'lucide-react-native';
+import { Bookmark, ChevronLeft, Clock3, Heart, MessageCircle, Play, Share2 } from 'lucide-react-native';
+import { useEvent } from 'expo';
 import { StatusBar } from 'expo-status-bar';
+import { useVideoPlayer, VideoView } from 'expo-video';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/colors';
 import { useSocialStore } from '../../features/social/socialStore';
@@ -47,11 +49,58 @@ function RailButton({ label, count, active = false, onPress, children }: {
   );
 }
 
-function VideoPage({ post, author, height, bottomInset, isLiked, isBookmarked, onAuthor, onLike, onComment, onBookmark, onShare }: {
+function PlayableVideo({ uri, posterUri, isActive }: {
+  uri: number | string;
+  posterUri: number | string;
+  isActive: boolean;
+}) {
+  const [firstFrameRendered, setFirstFrameRendered] = useState(false);
+  const player = useVideoPlayer(uri, (instance) => {
+    instance.loop = true;
+  });
+  const { isPlaying } = useEvent(player, 'playingChange', { isPlaying: player.playing });
+
+  useEffect(() => {
+    if (isActive) {
+      player.play();
+    } else {
+      player.pause();
+      player.currentTime = 0;
+    }
+  }, [isActive, player]);
+
+  return (
+    <>
+      <VideoView
+        contentFit="cover"
+        nativeControls={false}
+        onFirstFrameRender={() => setFirstFrameRendered(true)}
+        player={player}
+        style={StyleSheet.absoluteFill}
+      />
+      {!firstFrameRendered ? <Image source={imageSource(posterUri)} resizeMode="cover" style={StyleSheet.absoluteFill} /> : null}
+      <Pressable
+        accessibilityLabel={isPlaying ? '暂停视频' : '播放视频'}
+        accessibilityRole="button"
+        onPress={() => isPlaying ? player.pause() : player.play()}
+        style={StyleSheet.absoluteFill}
+      >
+        {!isPlaying && firstFrameRendered ? (
+          <View style={styles.centerPlayButton}>
+            <Play color={Colors.textPrimary} fill={Colors.textPrimary} size={28} strokeWidth={1.8} />
+          </View>
+        ) : null}
+      </Pressable>
+    </>
+  );
+}
+
+function VideoPage({ post, author, height, bottomInset, isActive, isLiked, isBookmarked, onAuthor, onLike, onComment, onBookmark, onShare }: {
   post: SocialPost;
   author: SocialUser;
   height: number;
   bottomInset: number;
+  isActive: boolean;
   isLiked: boolean;
   isBookmarked: boolean;
   onAuthor(): void;
@@ -64,8 +113,12 @@ function VideoPage({ post, author, height, bottomInset, isLiked, isBookmarked, o
 
   return (
     <View style={[styles.page, { height }]}>
-      <Image source={imageSource(post.media.asset.posterUri)} resizeMode="cover" style={StyleSheet.absoluteFill} />
-      <View style={styles.imageShade} />
+      {post.media.asset.playbackStatus === 'ready' ? (
+        <PlayableVideo uri={post.media.asset.uri} posterUri={post.media.asset.posterUri} isActive={isActive} />
+      ) : (
+        <Image source={imageSource(post.media.asset.posterUri)} resizeMode="cover" style={StyleSheet.absoluteFill} />
+      )}
+      <View pointerEvents="none" style={styles.imageShade} />
 
       {post.media.asset.playbackStatus === 'reserved' ? (
         <View style={styles.reservedState}>
@@ -147,7 +200,7 @@ export default function VideoFeedScreen({ navigation, route }: Props) {
           setActiveIndex(Math.max(0, Math.round(event.nativeEvent.contentOffset.y / height)));
         }}
         pagingEnabled
-        renderItem={({ item }) => {
+        renderItem={({ item, index }) => {
           const author = state.usersById[item.authorId];
           if (!author) return <View style={{ height }} />;
           return (
@@ -156,6 +209,7 @@ export default function VideoFeedScreen({ navigation, route }: Props) {
               author={author}
               height={height}
               bottomInset={insets.bottom}
+              isActive={index === activeIndex}
               isLiked={state.likedPostIds.includes(item.id)}
               isBookmarked={state.bookmarkedPostIds.includes(item.id)}
               onAuthor={() => navigation.navigate('UserProfile', { userId: author.id })}
@@ -184,6 +238,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.black },
   page: { width: '100%', backgroundColor: Colors.black, overflow: 'hidden' },
   imageShade: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0, 0, 0, 0.28)' },
+  centerPlayButton: { position: 'absolute', alignSelf: 'center', top: '45%', width: 58, height: 58, borderRadius: 29, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0, 0, 0, 0.58)' },
   reservedState: { position: 'absolute', left: '20%', right: '20%', top: '39%', alignItems: 'center', gap: 6, paddingVertical: 14, borderRadius: 6, backgroundColor: 'rgba(0, 0, 0, 0.62)' },
   reservedTitle: { color: Colors.textPrimary, fontSize: 14, fontWeight: '700' },
   reservedSubtitle: { color: Colors.textSecondary, fontSize: 12 },

@@ -1,22 +1,19 @@
 export interface ImageGridLayout {
-  columns: number;
-  rows: number;
+  variant: 'empty' | 'single' | 'split' | 'featured' | 'quad';
   visibleCount: number;
+  overflowCount: number;
 }
 
-const MAX_VISIBLE_IMAGES = 9;
+const MAX_VISIBLE_IMAGES = 4;
 
 export function getImageGridLayout(imageCount: number): ImageGridLayout {
-  const visibleCount = Math.min(MAX_VISIBLE_IMAGES, Math.max(0, Math.floor(imageCount)));
-  if (visibleCount <= 1) {
-    return { columns: visibleCount, rows: visibleCount, visibleCount };
-  }
-
-  const columns = visibleCount <= 4 ? 2 : 3;
+  const count = Math.max(0, Math.floor(imageCount));
+  const visibleCount = Math.min(MAX_VISIBLE_IMAGES, count);
+  const variants: ImageGridLayout['variant'][] = ['empty', 'single', 'split', 'featured', 'quad'];
   return {
-    columns,
-    rows: Math.ceil(visibleCount / columns),
+    variant: variants[visibleCount],
     visibleCount,
+    overflowCount: Math.max(0, count - visibleCount),
   };
 }
 

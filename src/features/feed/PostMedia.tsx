@@ -1,19 +1,24 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Image,
-  type ImageSourcePropType,
+  type ImageRequireSource,
+  type ImageURISource,
   Pressable,
   StyleSheet,
+  type StyleProp,
   Text,
   View,
+  type ViewStyle,
   type GestureResponderEvent,
 } from 'react-native';
-import { Music2, Play } from 'lucide-react-native';
+import { Music2, Play, X } from 'lucide-react-native';
+import ImageViewing from 'react-native-image-viewing';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/colors';
 import type { MediaContent } from '../social/types';
 import { getImageGridLayout, getSingleImageAspectRatio } from './imageGridLayout';
 
-function imageSource(uri: number | string): ImageSourcePropType {
+function imageSource(uri: number | string): ImageRequireSource | ImageURISource {
   return typeof uri === 'number' ? uri : { uri };
 }
 
@@ -24,47 +29,109 @@ function stopAndRun(callback: () => void) {
   };
 }
 
-function ImageMedia({ media, onOpen }: {
+function ImageMedia({ media }: {
   media: Extract<MediaContent, { type: 'images' }>;
-  onOpen(): void;
 }) {
+  const insets = useSafeAreaInsets();
+  const [viewerVisible, setViewerVisible] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState(0);
   const layout = getImageGridLayout(media.assets.length);
   const assets = media.assets.slice(0, layout.visibleCount);
   if (assets.length === 0) return null;
+
+  const openImage = (index: number) => {
+    setViewerIndex(index);
+    setViewerVisible(true);
+  };
+
+  const renderTile = (index: number, style: StyleProp<ViewStyle>) => {
+    const asset = assets[index];
+    const isOverflowTile = index === layout.visibleCount - 1 && layout.overflowCount > 0;
+    return (
+      <Pressable
+        accessibilityLabel={`查看第${index + 1}张图片`}
+        accessibilityRole="imagebutton"
+        key={asset.id}
+        onPress={stopAndRun(() => openImage(index))}
+        style={style}
+      >
+        <Image source={imageSource(asset.uri)} style={StyleSheet.absoluteFill} resizeMode="cover" />
+        {isOverflowTile ? (
+          <View style={styles.overflowShade}>
+            <Text style={styles.overflowText}>+{layout.overflowCount}</Text>
+          </View>
+        ) : null}
+      </Pressable>
+    );
+  };
+
+  const viewer = (
+    <ImageViewing
+      HeaderComponent={({ imageIndex }) => (
+        <View style={[styles.viewerHeader, { height: insets.top + 52, paddingTop: insets.top }]}>
+          <Text style={[styles.viewerCount, { top: insets.top + 16 }]}>{imageIndex + 1} / {media.assets.length}</Text>
+          <Pressable accessibilityLabel="关闭图片" accessibilityRole="button" onPress={() => setViewerVisible(false)} style={styles.viewerClose}>
+            <X color={Colors.textPrimary} size={25} strokeWidth={2} />
+          </Pressable>
+        </View>
+      )}
+      imageIndex={viewerIndex}
+      images={media.assets.map((asset) => imageSource(asset.uri))}
+      keyExtractor={(_, index) => media.assets[index].id}
+      onRequestClose={() => setViewerVisible(false)}
+      swipeToCloseEnabled
+      visible={viewerVisible}
+    />
+  );
+
   if (assets.length === 1) {
     return (
-      <Pressable accessibilityLabel="查看图片" accessibilityRole="imagebutton" onPress={stopAndRun(onOpen)}>
-        <Image
-          source={imageSource(assets[0].uri)}
-          style={[styles.singleImage, { aspectRatio: getSingleImageAspectRatio(assets[0].aspectRatio) }]}
-          resizeMode="cover"
-        />
-      </Pressable>
+      <>
+        <Pressable accessibilityLabel="查看图片" accessibilityRole="imagebutton" onPress={stopAndRun(() => openImage(0))}>
+          <Image
+            source={imageSource(assets[0].uri)}
+            style={[styles.singleImage, { aspectRatio: getSingleImageAspectRatio(assets[0].aspectRatio) }]}
+            resizeMode="cover"
+          />
+        </Pressable>
+        {viewer}
+      </>
     );
   }
 
-  const rows = Array.from({ length: layout.rows }, (_, rowIndex) =>
-    assets.slice(rowIndex * layout.columns, (rowIndex + 1) * layout.columns),
-  );
-
   return (
-    <Pressable
-      accessibilityLabel={`查看${assets.length}张图片`}
-      accessibilityRole="imagebutton"
-      onPress={stopAndRun(onOpen)}
-      style={[styles.imageGrid, { aspectRatio: layout.columns / layout.rows }]}
-    >
-      {rows.map((row, rowIndex) => (
-        <View key={`row-${rowIndex}`} style={styles.imageGridRow}>
-          {row.map((asset) => (
-            <Image key={asset.id} source={imageSource(asset.uri)} style={styles.gridImage} resizeMode="cover" />
-          ))}
-          {Array.from({ length: layout.columns - row.length }, (_, placeholderIndex) => (
-            <View key={`placeholder-${placeholderIndex}`} style={styles.gridPlaceholder} />
-          ))}
-        </View>
-      ))}
-    </Pressable>
+    <>
+      <View style={styles.imageGrid}>
+        {layout.variant === 'split' ? (
+          <View style={styles.imageGridRow}>
+            {renderTile(0, styles.gridTile)}
+            {renderTile(1, styles.gridTile)}
+          </View>
+        ) : null}
+        {layout.variant === 'featured' ? (
+          <View style={styles.imageGridRow}>
+            {renderTile(0, styles.gridTile)}
+            <View style={styles.gridColumn}>
+              {renderTile(1, styles.gridTile)}
+              {renderTile(2, styles.gridTile)}
+            </View>
+          </View>
+        ) : null}
+        {layout.variant === 'quad' ? (
+          <>
+            <View style={styles.imageGridRow}>
+              {renderTile(0, styles.gridTile)}
+              {renderTile(1, styles.gridTile)}
+            </View>
+            <View style={styles.imageGridRow}>
+              {renderTile(2, styles.gridTile)}
+              {renderTile(3, styles.gridTile)}
+            </View>
+          </>
+        ) : null}
+      </View>
+      {viewer}
+    </>
   );
 }
 
@@ -110,7 +177,7 @@ function AudioMedia({ media, onOpen }: {
 
 export default function PostMedia({ media, onOpen }: { media: MediaContent; onOpen(): void }) {
   switch (media.type) {
-    case 'images': return <ImageMedia media={media} onOpen={onOpen} />;
+    case 'images': return <ImageMedia media={media} />;
     case 'video': return <VideoMedia media={media} onOpen={onOpen} />;
     case 'audio': return <AudioMedia media={media} onOpen={onOpen} />;
     default: return null;
@@ -119,10 +186,15 @@ export default function PostMedia({ media, onOpen }: { media: MediaContent; onOp
 
 const styles = StyleSheet.create({
   singleImage: { width: '100%', borderRadius: 8, backgroundColor: Colors.surface },
-  imageGrid: { width: '100%', gap: 3, borderRadius: 8, overflow: 'hidden' },
+  imageGrid: { width: '100%', aspectRatio: 1.6, gap: 3, borderRadius: 8, overflow: 'hidden', backgroundColor: Colors.surface },
   imageGridRow: { flex: 1, flexDirection: 'row', gap: 3 },
-  gridImage: { flex: 1, backgroundColor: Colors.surface },
-  gridPlaceholder: { flex: 1 },
+  gridColumn: { flex: 1, gap: 3 },
+  gridTile: { flex: 1, minWidth: 0, overflow: 'hidden', backgroundColor: Colors.surface },
+  overflowShade: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0, 0, 0, 0.58)' },
+  overflowText: { color: Colors.textPrimary, fontSize: 30, fontWeight: '700' },
+  viewerHeader: { position: 'absolute', zIndex: 1, top: 0, left: 0, right: 0, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' },
+  viewerCount: { position: 'absolute', left: 0, right: 0, textAlign: 'center', color: Colors.textPrimary, fontSize: 14, fontWeight: '700' },
+  viewerClose: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0, 0, 0, 0.5)' },
   video: { width: '100%', borderRadius: 8, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.surface },
   videoShade: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(9, 11, 13, 0.22)' },
   playButton: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(9, 11, 13, 0.72)', alignItems: 'center', justifyContent: 'center' },

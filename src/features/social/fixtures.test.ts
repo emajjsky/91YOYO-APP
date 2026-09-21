@@ -27,7 +27,7 @@ describe('social fixtures', () => {
   });
 
   it('keeps post IDs attached to content instead of array positions', () => {
-    expect(mockPosts.find((post) => post.content.startsWith('本届决赛'))?.id).toBe(
+    expect(mockPosts.find((post) => post.content.startsWith('竖屏记录'))?.id).toBe(
       'post-contest-final-runthrough',
     );
     expect(mockPosts.find((post) => post.content.startsWith('双手组报名'))?.id).toBe(
@@ -85,7 +85,7 @@ describe('social fixtures', () => {
     }
   });
 
-  it('marks reserved videos as unavailable and requires a URI for ready videos', () => {
+  it('provides both playable local videos and explicit reserved placeholders', () => {
     const videoAssets = mockPosts.flatMap((post) =>
       post.media.type === 'video' ? [post.media.asset] : [],
     );
@@ -94,8 +94,10 @@ describe('social fixtures', () => {
     expect(reservedVideoRejectsUri).toBe(true);
     expect(readyVideoRequiresUri).toBe(true);
     expect(videoAssets).toHaveLength(8);
-    expect(videoAssets.every((asset) => asset.playbackStatus === 'reserved')).toBe(true);
-    expect(videoAssets.every((asset) => !('uri' in asset))).toBe(true);
+    expect(videoAssets.some((asset) => asset.playbackStatus === 'ready')).toBe(true);
+    expect(videoAssets.some((asset) => asset.playbackStatus === 'reserved')).toBe(true);
+    expect(videoAssets.filter((asset) => asset.playbackStatus === 'ready').every((asset) => typeof asset.uri === 'number')).toBe(true);
+    expect(videoAssets.filter((asset) => asset.playbackStatus === 'reserved').every((asset) => !('uri' in asset))).toBe(true);
   });
 
   it('uses globally unique IDs for every media asset', () => {
@@ -118,14 +120,24 @@ describe('social fixtures', () => {
 
   it('does not invent public identity labels for fixture users', () => {
     expect(mockUsers.every((user) => !('roleLabel' in user))).toBe(true);
+    expect(mockUsers.every((user) => !/(教练|选手|表演者)/.test(user.bio))).toBe(true);
   });
 
-  it('includes four, six, and nine image albums for grid coverage', () => {
+  it('keeps larger albums to verify the four-tile overflow treatment', () => {
     const albumSizes = mockPosts.flatMap((post) =>
       post.media.type === 'images' ? [post.media.assets.length] : [],
     );
 
     expect(albumSizes).toEqual(expect.arrayContaining([4, 6, 9]));
+  });
+
+  it('uses Chinese visible names and audio metadata in the current mock phase', () => {
+    expect(mockUsers.every((user) => !/[A-Za-z]{3,}/.test(user.displayName))).toBe(true);
+
+    const audioAssets = mockPosts.flatMap((post) =>
+      post.media.type === 'audio' ? [post.media.asset] : [],
+    );
+    expect(audioAssets.every((asset) => !/[A-Za-z]{3,}/.test(`${asset.title}${asset.artist}`))).toBe(true);
   });
 
   it('contains fixed old and new timestamps plus low and high engagement', () => {

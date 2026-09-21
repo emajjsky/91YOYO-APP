@@ -13,12 +13,14 @@ import type { SocialComment, SocialPost } from './types';
 const STORAGE_KEY = '91yoyo-social-state';
 const runtimeRequire = createRequire(import.meta.url);
 const previousJpgHandler = runtimeRequire.extensions['.jpg'];
+const previousMp4Handler = runtimeRequire.extensions['.mp4'];
 const previousWavHandler = runtimeRequire.extensions['.wav'];
 const loadAsset = (module: NodeModule) => {
   module.exports = 1;
 };
 
 runtimeRequire.extensions['.jpg'] = loadAsset;
+runtimeRequire.extensions['.mp4'] = loadAsset;
 runtimeRequire.extensions['.wav'] = loadAsset;
 
 let createSocialStore: typeof import('./socialStore').createSocialStore;
@@ -38,6 +40,12 @@ afterAll(() => {
     runtimeRequire.extensions['.wav'] = previousWavHandler;
   } else {
     delete runtimeRequire.extensions['.wav'];
+  }
+
+  if (previousMp4Handler) {
+    runtimeRequire.extensions['.mp4'] = previousMp4Handler;
+  } else {
+    delete runtimeRequire.extensions['.mp4'];
   }
 });
 

@@ -16,7 +16,6 @@ import {
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ChevronLeft, Heart, Send } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { POST_CATEGORIES } from '../../constants/categories';
 import { Colors } from '../../constants/colors';
 import PostActions from '../../features/feed/PostActions';
 import PostHeader from '../../features/feed/PostHeader';
@@ -133,7 +132,6 @@ export default function PostDetailScreen({ navigation, route }: Props) {
     }
     if (!post || !author) return null;
 
-    const category = POST_CATEGORIES.find((item) => item.id === post.category);
     return (
       <>
         <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
@@ -144,9 +142,10 @@ export default function PostDetailScreen({ navigation, route }: Props) {
               onOpenAuthor={() => navigation.navigate('UserProfile', { userId: author.id })}
             />
             <View style={styles.postBody}>
-              {category ? <Text style={styles.category}>{category.label}</Text> : null}
-              <Text style={styles.postContent}>{post.content}</Text>
-              {post.hashtags.length > 0 ? <Text style={styles.hashtags}>{post.hashtags.join(' ')}</Text> : null}
+              <Text style={styles.postContent}>
+                {post.content}
+                {post.hashtags.length > 0 ? <Text style={styles.hashtags}> {post.hashtags.join(' ')}</Text> : null}
+              </Text>
               <PostMedia media={post.media} onOpen={openMedia} />
               <PostActions
                 likeCount={post.likeCount}
@@ -235,9 +234,8 @@ const styles = StyleSheet.create({
   scrollContent: { paddingBottom: 20 },
   postBlock: { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 4 },
   postBody: { marginLeft: 52, gap: 9 },
-  category: { alignSelf: 'flex-start', color: Colors.textMuted, fontSize: 12, fontWeight: '600' },
   postContent: { color: Colors.textPrimary, fontSize: 16, lineHeight: 23 },
-  hashtags: { color: Colors.brand, fontSize: 14, lineHeight: 20 },
+  hashtags: { color: Colors.brand },
   commentsHeader: { height: 48, flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 16, borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: Colors.border },
   commentsTitle: { color: Colors.textPrimary, fontSize: 15, fontWeight: '800' },
   commentsCount: { color: Colors.textMuted, fontSize: 13 },

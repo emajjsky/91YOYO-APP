@@ -7,6 +7,15 @@ const imageAssets = {
   contestTwo: require('../../../assets/mock/social/contest-indiana-02.jpg') as number,
   practice: require('../../../assets/mock/social/practice-hybl.jpg') as number,
   history: require('../../../assets/mock/social/history-molenaar.jpg') as number,
+  national: require('../../../assets/mock/social/contest-national-1a.jpg') as number,
+  idaho: require('../../../assets/mock/social/practice-idaho.jpg') as number,
+  champion: require('../../../assets/mock/social/champion-janos.jpg') as number,
+  threeA: require('../../../assets/mock/social/practice-3a.jpg') as number,
+  trickPoster: require('../../../assets/mock/social/video-yoyo-trick-poster.jpg') as number,
+};
+
+const videoAssets = {
+  trick: require('../../../assets/mock/social/video-yoyo-trick.mp4') as number,
 };
 
 const audioAssets = {
@@ -38,6 +47,20 @@ function reservedVideo(id: string, title: string, posterUri: number, aspectRatio
   };
 }
 
+function readyVideo(
+  id: string,
+  title: string,
+  uri: number,
+  posterUri: number,
+  aspectRatio: number,
+  durationSeconds: number,
+): MediaContent {
+  return {
+    type: 'video',
+    asset: { id, playbackStatus: 'ready', uri, posterUri, durationSeconds, aspectRatio, title },
+  };
+}
+
 function audio(
   id: string,
   uri: number,
@@ -56,19 +79,19 @@ type PostSeed = Omit<SocialPost, 'likeCount' | 'commentCount' | 'shareCount' | '
 
 const postSeeds: PostSeed[] = [
   {
-    id: 'post-contest-final-runthrough', authorId: 'user-chen', content: '本届决赛赛前的公开走台影像记录了选手如何在最后阶段确认落点。', category: 'contest', styleTags: ['1A'], hashtags: ['#1A', '#比赛日'], createdAt: '2026-09-15T12:00:00.000Z', media: reservedVideo('video-001', '决赛走台记录', imageAssets.contestOne, 1.5), engagement: [5200, 348, 612, 125000], visibility: 'public',
+    id: 'post-contest-final-runthrough', authorId: 'user-chen', content: '竖屏记录一段短招，重点看收球前手腕如何回到身体中线。', category: 'contest', styleTags: ['1A'], hashtags: ['#1A', '#短招记录'], createdAt: '2026-09-15T12:00:00.000Z', media: readyVideo('video-001', '竖屏短招记录', videoAssets.trick, imageAssets.trickPoster, 9 / 16, 1.45), engagement: [5200, 348, 612, 125000], visibility: 'public',
   },
   {
-    id: 'post-tutorial-5a-direction-change', authorId: 'user-xiaoyu', content: '公开赛动作影像可以用来观察换向时的手腕路径，再把练习幅度逐步放大。', category: 'tutorial', styleTags: ['5A'], hashtags: ['#5A', '#基础教学'], createdAt: '2026-09-15T10:30:00.000Z', media: reservedVideo('video-002', '5A 换向慢动作', imageAssets.practice, 1.5), engagement: [1840, 126, 208, 48200], visibility: 'public',
+    id: 'post-tutorial-5a-direction-change', authorId: 'user-xiaoyu', content: '公开赛动作影像可以用来观察换向时的手腕路径，再把练习幅度逐步放大。', category: 'tutorial', styleTags: ['5A'], hashtags: ['#5A', '#基础教学'], createdAt: '2026-09-15T10:30:00.000Z', media: reservedVideo('video-002', '5A 换向慢动作', imageAssets.idaho, 1.03), engagement: [1840, 126, 208, 48200], visibility: 'public',
   },
   {
-    id: 'post-editorial-2a-contest-loop', authorId: 'user-mori', content: '这组赛场影像记录了选手热身时反复确认循环节奏的过程。', category: 'contest', styleTags: ['2A'], hashtags: ['#2A', '#赛事影像'], createdAt: '2026-09-15T08:45:00.000Z', media: reservedVideo('video-003', '双手循环练习', imageAssets.contestTwo, 1.5), engagement: [720, 64, 31, 16900], visibility: 'public',
+    id: 'post-editorial-2a-contest-loop', authorId: 'user-mori', content: '这组赛场影像记录了选手热身时反复确认循环节奏的过程。', category: 'contest', styleTags: ['2A'], hashtags: ['#2A', '#赛事影像'], createdAt: '2026-09-15T08:45:00.000Z', media: reservedVideo('video-003', '双手循环练习', imageAssets.national, 0.85), engagement: [720, 64, 31, 16900], visibility: 'public',
   },
   {
-    id: 'post-tutorial-4a-catch-height', authorId: 'user-zhou', content: '公开比赛影像显示，稳定的视线高度比一味增加抛接高度更容易读球。', category: 'tutorial', styleTags: ['4A'], hashtags: ['#4A', '#抛接'], createdAt: '2026-09-14T16:20:00.000Z', media: reservedVideo('video-004', '4A 抛接高度对比', imageAssets.practice, 1.5), engagement: [1330, 91, 177, 35100], visibility: 'public',
+    id: 'post-tutorial-4a-catch-height', authorId: 'user-zhou', content: '公开比赛影像显示，稳定的视线高度比一味增加抛接高度更容易读球。', category: 'tutorial', styleTags: ['4A'], hashtags: ['#4A', '#抛接'], createdAt: '2026-09-14T16:20:00.000Z', media: reservedVideo('video-004', '4A 抛接高度对比', imageAssets.threeA, 0.72), engagement: [1330, 91, 177, 35100], visibility: 'public',
   },
   {
-    id: 'post-editorial-3a-recovery', authorId: 'user-aiko', content: '赛事后台影像中的失误处理说明，恢复动作也值得作为独立训练项目。', category: 'contest', styleTags: ['3A'], hashtags: ['#3A', '#失误恢复'], createdAt: '2026-09-14T09:10:00.000Z', media: reservedVideo('video-005', '3A 错位恢复', imageAssets.contestOne, 1.5), engagement: [411, 37, 19, 9600], visibility: 'followers',
+    id: 'post-editorial-3a-recovery', authorId: 'user-aiko', content: '赛事后台影像中的失误处理说明，恢复动作也值得作为独立训练项目。', category: 'contest', styleTags: ['3A'], hashtags: ['#3A', '#失误恢复'], createdAt: '2026-09-14T09:10:00.000Z', media: reservedVideo('video-005', '3A 错位恢复', imageAssets.champion, 0.67), engagement: [411, 37, 19, 9600], visibility: 'followers',
   },
   {
     id: 'post-editorial-beginner-meetup', authorId: 'user-maya', content: '这张公开赛后台影像可作为新手聚会划分练习区与通行区的参考案例。', category: 'meetup', styleTags: ['1A'], hashtags: ['#聚会组织', '#新手友好'], createdAt: '2026-09-13T11:40:00.000Z', media: reservedVideo('video-006', '聚会场地预览', imageAssets.contestTwo, 1.5), engagement: [286, 58, 73, 7800], visibility: 'public',
@@ -80,28 +103,28 @@ const postSeeds: PostSeed[] = [
     id: 'post-product-response-prototype', authorId: 'user-qi', content: '新回收系统样件的响应更直接，正式体验前还要继续做耐久测试。', category: 'product', styleTags: ['1A', '4A'], hashtags: ['#产品资讯', '#器材测试'], createdAt: '2026-09-11T06:30:00.000Z', media: reservedVideo('video-008', '回收系统样件', imageAssets.bearing, 1.71), engagement: [365, 82, 26, 11200], visibility: 'public',
   },
   {
-    id: 'post-music-speed-combo', authorId: 'user-leo', content: '给速度连招剪了一段 128 BPM 的练习拍，重音刚好落在换手位置。', category: 'music', styleTags: ['5A'], hashtags: ['#YOYO音乐', '#128BPM'], createdAt: '2026-09-10T13:15:00.000Z', media: audio('audio-001', audioAssets.speedCombo, imageAssets.blue, 'Speed Combo', 'Leo', 128, 10), engagement: [862, 54, 119, 19400], visibility: 'public',
+    id: 'post-music-speed-combo', authorId: 'user-leo', content: '给速度连招剪了一段 128 拍的练习节奏，重音刚好落在换手位置。', category: 'music', styleTags: ['5A'], hashtags: ['#悠悠球音乐', '#速度节拍'], createdAt: '2026-09-10T13:15:00.000Z', media: audio('audio-001', audioAssets.speedCombo, imageAssets.blue, '极速连招', '李欧', 128, 10), engagement: [862, 54, 119, 19400], visibility: 'public',
   },
   {
-    id: 'post-music-clean-steps', authorId: 'user-chen', content: '92 BPM 适合把新连招拆成四拍一段，先保证每个停顿都清楚。', category: 'music', styleTags: ['1A'], hashtags: ['#练习音乐', '#节拍'], createdAt: '2026-09-09T07:50:00.000Z', media: audio('audio-002', audioAssets.cleanSteps, imageAssets.bearing, 'Clean Steps', '陈弦', 92, 8), engagement: [516, 33, 64, 12800], visibility: 'public',
+    id: 'post-music-clean-steps', authorId: 'user-chen', content: '92 拍适合把新连招拆成四拍一段，先保证每个停顿都清楚。', category: 'music', styleTags: ['1A'], hashtags: ['#练习音乐', '#节拍'], createdAt: '2026-09-09T07:50:00.000Z', media: audio('audio-002', audioAssets.cleanSteps, imageAssets.bearing, '清晰节拍', '陈弦', 92, 8), engagement: [516, 33, 64, 12800], visibility: 'public',
   },
   {
-    id: 'post-music-night-session', authorId: 'user-nora', content: '夜练不追速度，用一段慢拍把每次抛接的等待时间拉出来。', category: 'music', styleTags: ['4A'], hashtags: ['#夜练', '#76BPM'], createdAt: '2026-09-08T15:25:00.000Z', media: audio('audio-003', audioAssets.nightSession, imageAssets.blue, 'Night Session', 'Nora', 76, 12), engagement: [274, 19, 22, 6900], visibility: 'public',
+    id: 'post-music-night-session', authorId: 'user-nora', content: '夜练不追速度，用一段慢拍把每次抛接的等待时间拉出来。', category: 'music', styleTags: ['4A'], hashtags: ['#夜练', '#慢速节拍'], createdAt: '2026-09-08T15:25:00.000Z', media: audio('audio-003', audioAssets.nightSession, imageAssets.blue, '夜间练习', '诺拉', 76, 12), engagement: [274, 19, 22, 6900], visibility: 'public',
   },
   {
-    id: 'post-music-5a-rhythm', authorId: 'user-xiaoyu', content: '同一段慢拍分别练自由手内圈和外圈，切换时会轻松很多。', category: 'music', styleTags: ['5A'], hashtags: ['#5A', '#节奏练习'], createdAt: '2026-09-07T09:30:00.000Z', media: audio('audio-004', audioAssets.cleanSteps, imageAssets.blue, 'Clean Steps', '陈弦', 92, 8), engagement: [493, 41, 52, 11700], visibility: 'public',
+    id: 'post-music-5a-rhythm', authorId: 'user-xiaoyu', content: '同一段慢拍分别练自由手内圈和外圈，切换时会轻松很多。', category: 'music', styleTags: ['5A'], hashtags: ['#5A', '#节奏练习'], createdAt: '2026-09-07T09:30:00.000Z', media: audio('audio-004', audioAssets.cleanSteps, imageAssets.blue, '清晰节拍', '陈弦', 92, 8), engagement: [493, 41, 52, 11700], visibility: 'public',
   },
   {
-    id: 'post-music-2a-tempo', authorId: 'user-mori', content: '双手循环跟 128 拍容易抢拍，降速以后反而能听见左右手差异。', category: 'music', styleTags: ['2A'], hashtags: ['#2A', '#节奏'], createdAt: '2026-09-06T04:10:00.000Z', media: audio('audio-005', audioAssets.speedCombo, imageAssets.bearing, 'Speed Combo', 'Leo', 128, 10), engagement: [188, 15, 11, 4200], visibility: 'public',
+    id: 'post-music-2a-tempo', authorId: 'user-mori', content: '双手循环跟 128 拍容易抢拍，降速以后反而能听见左右手差异。', category: 'music', styleTags: ['2A'], hashtags: ['#2A', '#节奏'], createdAt: '2026-09-06T04:10:00.000Z', media: audio('audio-005', audioAssets.speedCombo, imageAssets.bearing, '极速连招', '李欧', 128, 10), engagement: [188, 15, 11, 4200], visibility: 'public',
   },
   {
-    id: 'post-music-3a-review', authorId: 'user-aiko', content: '把三球练习录在慢拍上，回看时更容易定位是谁先偏离轨道。', category: 'music', styleTags: ['3A'], hashtags: ['#3A', '#慢拍'], createdAt: '2026-09-05T12:45:00.000Z', media: audio('audio-006', audioAssets.nightSession, imageAssets.bearing, 'Night Session', 'Nora', 76, 12), engagement: [137, 12, 8, 3500], visibility: 'followers',
+    id: 'post-music-3a-review', authorId: 'user-aiko', content: '把三球练习录在慢拍上，回看时更容易定位是谁先偏离轨道。', category: 'music', styleTags: ['3A'], hashtags: ['#3A', '#慢拍'], createdAt: '2026-09-05T12:45:00.000Z', media: audio('audio-006', audioAssets.nightSession, imageAssets.bearing, '夜间练习', '诺拉', 76, 12), engagement: [137, 12, 8, 3500], visibility: 'followers',
   },
   {
     id: 'post-tutorial-bearing-maintenance', authorId: 'user-qi', content: '拆开后可以清楚看到轴承与回收系统的配合，清洁时不要让溶剂碰到胶贴。', category: 'tutorial', styleTags: ['1A'], hashtags: ['#器材维护', '#轴承'], createdAt: '2026-09-04T08:00:00.000Z', media: images('images-001', { uri: imageAssets.bearing, aspectRatio: 1.71, alt: '拆开的悠悠球与中央轴承结构' }), engagement: [1100, 96, 280, 33700], visibility: 'public',
   },
   {
-    id: 'post-history-indiana-contest', authorId: 'user-tao', content: '旧赛场的四张现场照记录了参赛者在后台热身、交流与上台的场景。', category: 'contest', styleTags: ['1A'], hashtags: ['#赛事影像', '#悠悠球历史'], createdAt: '2026-09-15T11:30:00.000Z', media: images('images-002', { uri: imageAssets.contestOne, aspectRatio: 1.5, alt: '悠悠球比赛现场选手动作照片' }, { uri: imageAssets.contestTwo, aspectRatio: 1.5, alt: '同场比赛的另一张现场照片' }, { uri: imageAssets.practice, aspectRatio: 1.5, alt: '选手在比赛场地进行动作' }, { uri: imageAssets.history, aspectRatio: 0.66, alt: '早期悠悠球赛事历史照片' }), engagement: [2430, 164, 510, 68200], visibility: 'public',
+    id: 'post-history-indiana-contest', authorId: 'user-tao', content: '四张现场照记录了参赛者热身、交流、上台和夺冠的不同瞬间。', category: 'contest', styleTags: ['1A'], hashtags: ['#赛事影像', '#悠悠球比赛'], createdAt: '2026-09-15T11:30:00.000Z', media: images('images-002', { uri: imageAssets.national, aspectRatio: 0.85, alt: '全美悠悠球比赛选手动作照片' }, { uri: imageAssets.champion, aspectRatio: 0.67, alt: '世界悠悠球冠军现场照片' }, { uri: imageAssets.idaho, aspectRatio: 1.03, alt: '选手近距离练习悠悠球' }, { uri: imageAssets.threeA, aspectRatio: 0.72, alt: '3A 双球动作练习' }), engagement: [2430, 164, 510, 68200], visibility: 'public',
   },
   {
     id: 'post-daily-first-metal-yoyo', authorId: 'user-lin', content: '第一颗金属球到手后拍的照片。现在看划痕也很有纪念意义。', category: 'daily', styleTags: ['1A'], hashtags: ['#我的第一颗球', '#1A'], createdAt: '2026-08-31T13:35:00.000Z', media: images('images-003', { uri: imageAssets.blue, aspectRatio: 1, alt: '蓝色金属悠悠球俯拍照片' }), engagement: [94, 18, 3, 1800], visibility: 'public',
@@ -116,7 +139,7 @@ const postSeeds: PostSeed[] = [
     id: 'post-event-community-meetup-archive', authorId: 'user-maya', content: '2008 年赛事后台影像记录了参赛者共享练习空间的现场组织方式。', category: 'event_news', styleTags: ['1A', '2A'], hashtags: ['#活动档案', '#场地组织'], createdAt: '2026-08-23T03:40:00.000Z', media: images('images-006', { uri: imageAssets.contestOne, aspectRatio: 1.5, alt: '悠悠球赛事后台练习场景' }), engagement: [221, 61, 48, 5700], visibility: 'public',
   },
   {
-    id: 'post-product-spin-cleaning', authorId: 'user-qi', content: '清洁过程整理成六张图，先排除绳子和轴承状态，再判断球体的回转差异。', category: 'product', styleTags: ['1A'], hashtags: ['#器材测试', '#保养'], createdAt: '2026-09-15T11:15:00.000Z', media: images('images-007', { uri: imageAssets.blue, aspectRatio: 1, alt: '蓝色悠悠球外观' }, { uri: imageAssets.bearing, aspectRatio: 1.71, alt: '悠悠球轴承内部结构' }, { uri: imageAssets.practice, aspectRatio: 1.5, alt: '清洁前的回转测试' }, { uri: imageAssets.contestOne, aspectRatio: 1.5, alt: '清洁后的动作测试' }, { uri: imageAssets.contestTwo, aspectRatio: 1.5, alt: '不同回转状态对比' }, { uri: imageAssets.history, aspectRatio: 0.66, alt: '器材维护记录归档' }), engagement: [472, 77, 89, 13400], visibility: 'public',
+    id: 'post-product-spin-cleaning', authorId: 'user-qi', content: '清洁和测试过程整理成六张图，前四张直接展示，剩余步骤可以点开继续看。', category: 'product', styleTags: ['1A'], hashtags: ['#器材测试', '#保养'], createdAt: '2026-09-15T11:15:00.000Z', media: images('images-007', { uri: imageAssets.blue, aspectRatio: 1, alt: '蓝色悠悠球外观' }, { uri: imageAssets.bearing, aspectRatio: 1.71, alt: '悠悠球轴承内部结构' }, { uri: imageAssets.idaho, aspectRatio: 1.03, alt: '清洁前的回转测试' }, { uri: imageAssets.national, aspectRatio: 0.85, alt: '清洁后的动作测试' }, { uri: imageAssets.champion, aspectRatio: 0.67, alt: '不同回转状态对比' }, { uri: imageAssets.threeA, aspectRatio: 0.72, alt: '器材维护后的动作记录' }), engagement: [472, 77, 89, 13400], visibility: 'public',
   },
   {
     id: 'post-event-equipment-meetup', authorId: 'user-tao', content: '本月器材交流会增加了拆解台，请自带收纳盒并给零件做标记。', category: 'event_news', styleTags: ['1A', '4A'], hashtags: ['#活动通知', '#器材交流'], createdAt: '2026-08-17T14:30:00.000Z', media: images('images-008', { uri: imageAssets.bearing, aspectRatio: 1.71, alt: '拆开的悠悠球和轴承零件' }), engagement: [319, 46, 104, 8800], visibility: 'public',

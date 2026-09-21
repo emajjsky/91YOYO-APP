@@ -27,7 +27,7 @@ export const mockUsers: SocialUser[] = [
     handle: 'xiaoyu5a',
     displayName: '小宇',
     avatarUri: blueYoyoAvatar,
-    bio: '5A 选手，喜欢研究自由手节奏。',
+    bio: '最近在练 5A，喜欢研究自由手节奏。',
     city: '成都',
     styleTags: ['1A', '5A'],
   },
@@ -61,7 +61,7 @@ export const mockUsers: SocialUser[] = [
   {
     id: 'user-maya',
     handle: 'mayabinds',
-    displayName: 'Maya',
+    displayName: '麦雅',
     avatarUri: blueYoyoAvatar,
     bio: '新手友好聚会发起人。',
     city: '深圳',
@@ -97,7 +97,7 @@ export const mockUsers: SocialUser[] = [
   {
     id: 'user-leo',
     handle: 'leocounterweight',
-    displayName: 'Leo',
+    displayName: '李欧',
     avatarUri: blueYoyoAvatar,
     bio: '自由手、音乐剪辑和速度连招。',
     city: '重庆',
@@ -106,7 +106,7 @@ export const mockUsers: SocialUser[] = [
   {
     id: 'user-nora',
     handle: 'norathrows',
-    displayName: 'Nora',
+    displayName: '诺拉',
     avatarUri: bearingAvatar,
     bio: '周末练 4A，工作日看比赛录像。',
     city: '青岛',

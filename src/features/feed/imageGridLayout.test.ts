@@ -3,15 +3,21 @@ import { getImageGridLayout, getSingleImageAspectRatio } from './imageGridLayout
 
 describe('image grid layout', () => {
   it.each([
-    [4, { columns: 2, rows: 2, visibleCount: 4 }],
-    [6, { columns: 3, rows: 2, visibleCount: 6 }],
-    [9, { columns: 3, rows: 3, visibleCount: 9 }],
-  ])('uses a complete grid for %i images', (count, expected) => {
+    [0, { variant: 'empty', visibleCount: 0, overflowCount: 0 }],
+    [1, { variant: 'single', visibleCount: 1, overflowCount: 0 }],
+    [2, { variant: 'split', visibleCount: 2, overflowCount: 0 }],
+    [3, { variant: 'featured', visibleCount: 3, overflowCount: 0 }],
+    [4, { variant: 'quad', visibleCount: 4, overflowCount: 0 }],
+  ])('selects the X-style layout for %i images', (count, expected) => {
     expect(getImageGridLayout(count)).toEqual(expected);
   });
 
-  it('caps albums at nine visible images', () => {
-    expect(getImageGridLayout(12)).toEqual({ columns: 3, rows: 3, visibleCount: 9 });
+  it.each([
+    [6, { variant: 'quad', visibleCount: 4, overflowCount: 2 }],
+    [9, { variant: 'quad', visibleCount: 4, overflowCount: 5 }],
+    [12, { variant: 'quad', visibleCount: 4, overflowCount: 8 }],
+  ])('shows four tiles and an overflow count for %i images', (count, expected) => {
+    expect(getImageGridLayout(count)).toEqual(expected);
   });
 
   it('keeps single images compact while respecting common source ratios', () => {

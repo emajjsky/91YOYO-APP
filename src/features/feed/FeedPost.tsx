@@ -28,8 +28,10 @@ export default function FeedPost({ post, author, recommendationReason, isLiked, 
       {recommendationReason ? <Text numberOfLines={1} style={styles.reason}>推荐 · {recommendationReason}</Text> : null}
       <PostHeader author={author} createdAt={post.createdAt} onOpenAuthor={onOpenAuthor} onMore={onMore} />
       <View style={styles.body}>
-        <Text style={styles.content}>{post.content}</Text>
-        {post.hashtags.length > 0 ? <Text style={styles.hashtags}>{post.hashtags.join(' ')}</Text> : null}
+        <Text style={styles.content}>
+          {post.content}
+          {post.hashtags.length > 0 ? <Text style={styles.hashtags}> {post.hashtags.join(' ')}</Text> : null}
+        </Text>
         <PostMedia media={post.media} onOpen={onOpenMedia ?? onOpen} />
         <PostActions likeCount={post.likeCount} commentCount={post.commentCount} shareCount={post.shareCount} isLiked={isLiked} isBookmarked={isBookmarked} onLike={onLike} onBookmark={onBookmark} onComment={onComment} onShare={onShare} />
       </View>
@@ -42,5 +44,5 @@ const styles = StyleSheet.create({
   reason: { color: Colors.textMuted, fontSize: 12, fontWeight: '600', marginLeft: 52, marginBottom: 6 },
   body: { marginLeft: 52, gap: 8 },
   content: { color: Colors.textPrimary, fontSize: 15, lineHeight: 21 },
-  hashtags: { color: Colors.brand, fontSize: 14, lineHeight: 20 },
+  hashtags: { color: Colors.brand },
 });

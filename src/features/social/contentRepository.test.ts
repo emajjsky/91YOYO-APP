@@ -7,12 +7,14 @@ import type { ContentRepository } from './contentRepository';
 
 const runtimeRequire = createRequire(import.meta.url);
 const previousJpgHandler = runtimeRequire.extensions['.jpg'];
+const previousMp4Handler = runtimeRequire.extensions['.mp4'];
 const previousWavHandler = runtimeRequire.extensions['.wav'];
 const loadAsset = (module: NodeModule) => {
   module.exports = 1;
 };
 
 runtimeRequire.extensions['.jpg'] = loadAsset;
+runtimeRequire.extensions['.mp4'] = loadAsset;
 runtimeRequire.extensions['.wav'] = loadAsset;
 
 let createMockContentRepository: typeof import('./contentRepository').createMockContentRepository;
@@ -36,6 +38,12 @@ afterAll(() => {
     runtimeRequire.extensions['.wav'] = previousWavHandler;
   } else {
     delete runtimeRequire.extensions['.wav'];
+  }
+
+  if (previousMp4Handler) {
+    runtimeRequire.extensions['.mp4'] = previousMp4Handler;
+  } else {
+    delete runtimeRequire.extensions['.mp4'];
   }
 });
 
@@ -214,13 +222,13 @@ describe('createMockContentRepository', () => {
     const nextPost = nextResult.items[0].post;
 
     expect(nextPost.content).toBe(
-      '本届决赛赛前的公开走台影像记录了选手如何在最后阶段确认落点。',
+      '竖屏记录一段短招，重点看收球前手腕如何回到身体中线。',
     );
     expect(nextPost.styleTags).toEqual(['1A']);
-    expect(nextPost.hashtags).toEqual(['#1A', '#比赛日']);
+    expect(nextPost.hashtags).toEqual(['#1A', '#短招记录']);
     expect(nextPost.media).toMatchObject({
       type: 'video',
-      asset: { title: '决赛走台记录' },
+      asset: { title: '竖屏短招记录' },
     });
   });
 
@@ -254,11 +262,11 @@ describe('createMockContentRepository', () => {
     )?.post;
 
     expect(nextAudioPost?.content).toBe(
-      '92 BPM 适合把新连招拆成四拍一段，先保证每个停顿都清楚。',
+      '92 拍适合把新连招拆成四拍一段，先保证每个停顿都清楚。',
     );
     expect(nextAudioPost?.media).toMatchObject({
       type: 'audio',
-      asset: { title: 'Clean Steps' },
+      asset: { title: '清晰节拍' },
     });
     expect(nextImagePost?.media).toMatchObject({
       type: 'images',
@@ -284,17 +292,17 @@ describe('createMockContentRepository', () => {
     const nextPost = await repository.getPost('post-history-indiana-contest');
 
     expect(nextPost?.content).toBe(
-      '旧赛场的四张现场照记录了参赛者在后台热身、交流与上台的场景。',
+      '四张现场照记录了参赛者热身、交流、上台和夺冠的不同瞬间。',
     );
     expect(nextPost?.styleTags).toEqual(['1A']);
-    expect(nextPost?.hashtags).toEqual(['#赛事影像', '#悠悠球历史']);
+    expect(nextPost?.hashtags).toEqual(['#赛事影像', '#悠悠球比赛']);
     expect(nextPost?.media).toMatchObject({
       type: 'images',
       assets: [
-        { alt: '悠悠球比赛现场选手动作照片' },
-        { alt: '同场比赛的另一张现场照片' },
-        { alt: '选手在比赛场地进行动作' },
-        { alt: '早期悠悠球赛事历史照片' },
+        { alt: '全美悠悠球比赛选手动作照片' },
+        { alt: '世界悠悠球冠军现场照片' },
+        { alt: '选手近距离练习悠悠球' },
+        { alt: '3A 双球动作练习' },
       ],
     });
   });

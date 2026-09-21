@@ -1,197 +1,225 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import {
-  View, Text, Image, TouchableOpacity,
-  ScrollView, StyleSheet, Dimensions,
+  FlatList,
+  Image,
+  type ImageSourcePropType,
+  Pressable,
+  Share,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { ChevronLeft, MapPin, MessageCircle } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
 import { Colors } from '../../constants/colors';
+import FeedPost from '../../features/feed/FeedPost';
+import FeedState from '../../features/feed/FeedState';
+import { currentViewer } from '../../features/social/mockProfiles';
+import { mockUsers } from '../../features/social/mockUsers';
+import { useSocialStore } from '../../features/social/socialStore';
+import type { SocialPost } from '../../features/social/types';
+import type { RootStackParamList } from '../../navigation/RootNavigator';
+import { postsForUser } from './profileModel';
 
-const { width: SCREEN_W } = Dimensions.get('window');
-const THUMB_W = (SCREEN_W - 32 - 4) / 3;
+type Props = NativeStackScreenProps<RootStackParamList, 'UserProfile'>;
 
-const MOCK_USER = {
-  uid: 'u_100',
-  nickname: 'Hiroshi_5A',
-  avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80',
-  styleTags: ['5A', '1A'],
-  city: '东京 · 日本',
-  followingCount: 234,
-  followersCount: 8821,
-  yoyoCount: 47,
-};
+function imageSource(uri: number | string): ImageSourcePropType {
+  return typeof uri === 'number' ? uri : { uri };
+}
 
-const MOCK_PUBLIC_POSTS = [
-  { id: 'p1', imageUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&auto=format&fit=crop&q=80' },
-  { id: 'p2', imageUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=300&auto=format&fit=crop&q=80' },
-  { id: 'p3', imageUrl: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=300&auto=format&fit=crop&q=80' },
-];
-
-type ContentTab = '发布' | '装备库';
-
-export default function UserProfileScreen() {
+export default function UserProfileScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
-  const navigation = useNavigation();
-  const [isFollowing, setIsFollowing] = useState(false);
-  const [activeTab, setActiveTab] = useState<ContentTab>('发布');
+  const state = useSocialStore();
+  const userId = route.params.userId;
+  const user = state.usersById[userId] ?? mockUsers.find((candidate) => candidate.id === userId);
+  const posts = useMemo(
+    () => postsForUser(Object.values(state.postsById), userId),
+    [state.postsById, userId],
+  );
+  const isFollowing = state.followedUserIds.includes(userId);
+  const isCurrentUser = userId === currentViewer.userId;
+  const likeCount = posts.reduce((total, post) => total + post.likeCount, 0);
 
-  return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* 顶部导航 */}
-      <View style={styles.navbar}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.backBtn}>‹ 返回</Text>
-        </TouchableOpacity>
-        <Text style={styles.navTitle}>{MOCK_USER.nickname}</Text>
-        <TouchableOpacity>
-          <Text style={styles.moreBtn}>···</Text>
-        </TouchableOpacity>
+  const loadAllPosts = useCallback(async () => {
+    await useSocialStore.getState().loadFeed('recommended');
+    while (true) {
+      const feed = useSocialStore.getState().feeds.recommended;
+      if (!feed.hasMore || feed.loadState === 'error') return;
+      await useSocialStore.getState().loadMore('recommended');
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadAllPosts();
+  }, [loadAllPosts]);
+
+  const sharePost = async (post: SocialPost) => {
+    if (!user) return;
+    await Share.share({ message: `${user.displayName}：${post.content}` });
+  };
+
+  if (!user) {
+    return (
+      <View style={[styles.screen, { paddingTop: insets.top }]}>
+        <View style={styles.navbar}>
+          <Pressable accessibilityLabel="返回" accessibilityRole="button" onPress={navigation.goBack} style={styles.navButton}>
+            <ChevronLeft color={Colors.textPrimary} size={27} strokeWidth={2} />
+          </Pressable>
+          <Text style={styles.navTitle}>个人主页</Text>
+          <View style={styles.navButton} />
+        </View>
+        <FeedState kind="empty" title="用户不可用" message="该用户可能已离开，或资料尚未加载。" />
+      </View>
+    );
+  }
+
+  const header = (
+    <View>
+      <View style={styles.profileHeader}>
+        <Image source={imageSource(user.avatarUri)} style={styles.avatar} />
+        <View style={styles.identity}>
+          <Text numberOfLines={1} style={styles.displayName}>{user.displayName}</Text>
+          <Text numberOfLines={1} style={styles.handle}>@{user.handle}</Text>
+        </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* 头像 + 基本信息 */}
-        <View style={styles.profileHeader}>
-          <Image source={{ uri: MOCK_USER.avatarUrl }} style={styles.avatar} />
-          <View style={styles.profileInfo}>
-            <Text style={styles.nickname}>{MOCK_USER.nickname}</Text>
-            <View style={styles.styleTagRow}>
-              {MOCK_USER.styleTags.map((t) => (
-                <View key={t} style={styles.styleTag}>
-                  <Text style={styles.styleTagText}>{t}</Text>
-                </View>
-              ))}
-            </View>
-            <Text style={styles.cityText}>📍 {MOCK_USER.city}</Text>
-          </View>
+      <View style={styles.profileCopy}>
+        <Text style={styles.bio}>{user.bio}</Text>
+        <View style={styles.locationRow}>
+          <MapPin color={Colors.textMuted} size={15} strokeWidth={2} />
+          <Text style={styles.location}>{user.city}</Text>
         </View>
-
-        {/* 数据统计 */}
-        <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{MOCK_USER.followingCount}</Text>
-            <Text style={styles.statLabel}>关注</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{MOCK_USER.followersCount.toLocaleString()}</Text>
-            <Text style={styles.statLabel}>粉丝</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: '#67e8f9' }]}>{MOCK_USER.yoyoCount}</Text>
-            <Text style={styles.statLabel}>🪀 悠悠球</Text>
-          </View>
+        <View style={styles.styleRow}>
+          {user.styleTags.map((tag) => <Text key={tag} style={styles.styleTag}>{tag}</Text>)}
         </View>
+      </View>
 
-        {/* 操作按钮 */}
-        <View style={styles.actionRow}>
-          <TouchableOpacity
-            style={[styles.followBtn, isFollowing && styles.followingBtn]}
-            onPress={() => setIsFollowing(!isFollowing)}
-          >
-            <Text style={[styles.followBtnText, isFollowing && styles.followingBtnText]}>
-              {isFollowing ? '已关注' : '关注'}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.dmBtn}>
-            <Text style={styles.dmBtnText}>私信</Text>
-          </TouchableOpacity>
+      <View style={styles.statsRow}>
+        <View style={styles.statItem}>
+          <Text style={styles.statValue}>{posts.length}</Text>
+          <Text style={styles.statLabel}>动态</Text>
         </View>
+        <View style={styles.statItem}>
+          <Text style={styles.statValue}>{likeCount.toLocaleString('zh-CN')}</Text>
+          <Text style={styles.statLabel}>获赞</Text>
+        </View>
+        <View style={styles.statItem}>
+          <Text style={styles.statValue}>{user.styleTags.length}</Text>
+          <Text style={styles.statLabel}>花式</Text>
+        </View>
+      </View>
 
-        {/* 内容 Tab */}
-        <View style={styles.contentTabBar}>
-          {(['发布', '装备库'] as ContentTab[]).map((tab) => (
-            <TouchableOpacity
-              key={tab}
-              style={[styles.contentTab, activeTab === tab && styles.contentTabActive]}
-              onPress={() => setActiveTab(tab)}
+      <View style={styles.actionRow}>
+        {isCurrentUser ? (
+          <Pressable accessibilityRole="button" onPress={() => navigation.navigate('AccountSettings')} style={styles.messageButton}>
+            <Text style={styles.messageText}>编辑资料</Text>
+          </Pressable>
+        ) : (
+          <>
+            <Pressable
+              accessibilityLabel={isFollowing ? `取消关注${user.displayName}` : `关注${user.displayName}`}
+              accessibilityRole="button"
+              onPress={() => state.toggleFollow(user.id)}
+              style={[styles.followButton, isFollowing && styles.followingButton]}
             >
-              <Text style={[styles.contentTabText, activeTab === tab && styles.contentTabTextActive]}>
-                {tab}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+              <Text style={[styles.followText, isFollowing && styles.followingText]}>{isFollowing ? '已关注' : '关注'}</Text>
+            </Pressable>
+            <Pressable
+              accessibilityLabel={`私信${user.displayName}`}
+              accessibilityRole="button"
+              onPress={() => navigation.navigate('Chat', { seller: user.displayName })}
+              style={styles.messageButton}
+            >
+              <MessageCircle color={Colors.textPrimary} size={19} strokeWidth={2} />
+              <Text style={styles.messageText}>私信</Text>
+            </Pressable>
+          </>
+        )}
+      </View>
 
-        {/* 内容区（仅展示公开内容） */}
-        <View style={styles.thumbGrid}>
-          {MOCK_PUBLIC_POSTS.map((p) => (
-            <Image key={p.id} source={{ uri: p.imageUrl }} style={styles.thumbItem} />
-          ))}
+      <View style={styles.feedHeading}>
+        <Text style={styles.feedHeadingText}>动态</Text>
+        <View style={styles.feedIndicator} />
+      </View>
+    </View>
+  );
+
+  return (
+    <View style={[styles.screen, { paddingTop: insets.top }]}>
+      <View style={styles.navbar}>
+        <Pressable accessibilityLabel="返回" accessibilityRole="button" onPress={navigation.goBack} style={styles.navButton}>
+          <ChevronLeft color={Colors.textPrimary} size={27} strokeWidth={2} />
+        </Pressable>
+        <View style={styles.navIdentity}>
+          <Text numberOfLines={1} style={styles.navTitle}>{user.displayName}</Text>
+          <Text style={styles.navSubtitle}>{posts.length} 条动态</Text>
         </View>
-      </ScrollView>
+        <View style={styles.navButton} />
+      </View>
+
+      <FlatList
+        data={posts}
+        keyExtractor={(post) => post.id}
+        ListHeaderComponent={header}
+        ListEmptyComponent={state.feeds.recommended.loadState === 'loading'
+          ? <FeedState kind="loading" message="正在加载动态" />
+          : <FeedState kind="empty" message="这里还没有可见动态" />}
+        ItemSeparatorComponent={() => <View style={styles.divider} />}
+        renderItem={({ item: post }) => (
+          <FeedPost
+            post={post}
+            author={user}
+            isLiked={state.likedPostIds.includes(post.id)}
+            isBookmarked={state.bookmarkedPostIds.includes(post.id)}
+            onOpen={() => navigation.navigate('PostDetail', { postId: post.id })}
+            onOpenMedia={() => post.media.type === 'video'
+              ? navigation.navigate('VideoFeed', { initialPostId: post.id })
+              : navigation.navigate('PostDetail', { postId: post.id })}
+            onOpenAuthor={() => undefined}
+            onLike={() => state.toggleLike(post.id)}
+            onBookmark={() => state.toggleBookmark(post.id)}
+            onComment={() => navigation.navigate('PostDetail', { postId: post.id })}
+            onShare={() => void sharePost(post)}
+          />
+        )}
+        showsVerticalScrollIndicator={false}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bg },
-  navbar: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 12,
-    borderBottomWidth: 0.5, borderBottomColor: '#1a1d22',
-  },
-  navTitle: { color: Colors.white, fontSize: 17, fontWeight: '700' },
-  backBtn: { color: Colors.white, fontSize: 22 },
-  moreBtn: { color: Colors.textMuted, fontSize: 20 },
-
-  profileHeader: {
-    flexDirection: 'row', alignItems: 'flex-start', gap: 14,
-    padding: 20,
-  },
-  avatar: {
-    width: 72, height: 72, borderRadius: 36,
-    borderWidth: 2, borderColor: '#2a2d33',
-  },
-  profileInfo: { flex: 1, gap: 6 },
-  nickname: { color: Colors.white, fontSize: 18, fontWeight: '900' },
-  styleTagRow: { flexDirection: 'row', gap: 4 },
-  styleTag: {
-    backgroundColor: '#1c2028', borderRadius: 4,
-    paddingHorizontal: 6, paddingVertical: 2,
-    borderWidth: 0.5, borderColor: '#2e3340',
-  },
-  styleTagText: { color: '#8899bb', fontSize: 11, fontWeight: '700' },
-  cityText: { color: '#9ca3af', fontSize: 12 },
-
-  statsRow: {
-    flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center',
-    paddingVertical: 16,
-    borderTopWidth: 0.5, borderTopColor: '#1a1d22',
-    borderBottomWidth: 0.5, borderBottomColor: '#1a1d22',
-  },
-  statItem: { alignItems: 'center', gap: 2 },
-  statValue: { color: Colors.white, fontSize: 18, fontWeight: '800' },
-  statLabel: { color: '#9ca3af', fontSize: 12 },
-  statDivider: { width: 1, height: 28, backgroundColor: '#1f2937' },
-
-  actionRow: {
-    flexDirection: 'row', gap: 10,
-    paddingHorizontal: 20, paddingVertical: 14,
-  },
-  followBtn: {
-    flex: 1, backgroundColor: Colors.white,
-    borderRadius: 24, paddingVertical: 10, alignItems: 'center',
-  },
-  followingBtn: { backgroundColor: 'transparent', borderWidth: 1, borderColor: '#333' },
-  followBtnText: { color: Colors.black, fontSize: 15, fontWeight: '700' },
-  followingBtnText: { color: Colors.textMuted },
-  dmBtn: {
-    flex: 1, backgroundColor: 'transparent',
-    borderRadius: 24, paddingVertical: 10, alignItems: 'center',
-    borderWidth: 1, borderColor: '#333',
-  },
-  dmBtnText: { color: Colors.white, fontSize: 15, fontWeight: '700' },
-
-  contentTabBar: {
-    flexDirection: 'row',
-    borderBottomWidth: 0.5, borderBottomColor: '#1a1d22',
-  },
-  contentTab: { flex: 1, alignItems: 'center', paddingVertical: 12 },
-  contentTabActive: { borderBottomWidth: 2, borderBottomColor: Colors.white },
-  contentTabText: { color: Colors.textMuted, fontSize: 14, fontWeight: '600' },
-  contentTabTextActive: { color: Colors.white, fontWeight: '800' },
-
-  thumbGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 2, padding: 16 },
-  thumbItem: { width: THUMB_W, height: THUMB_W, borderRadius: 6 },
+  screen: { flex: 1, backgroundColor: Colors.background },
+  navbar: { height: 52, flexDirection: 'row', alignItems: 'center', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.border, paddingHorizontal: 8 },
+  navButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  navIdentity: { flex: 1, minWidth: 0 },
+  navTitle: { flex: 1, color: Colors.textPrimary, fontSize: 16, fontWeight: '800', textAlign: 'center' },
+  navSubtitle: { color: Colors.textMuted, fontSize: 11, textAlign: 'center', marginTop: 1 },
+  profileHeader: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingTop: 18 },
+  avatar: { width: 76, height: 76, borderRadius: 38, backgroundColor: Colors.surface, borderWidth: 2, borderColor: Colors.border },
+  identity: { flex: 1, minWidth: 0 },
+  displayName: { color: Colors.textPrimary, fontSize: 21, fontWeight: '900' },
+  handle: { color: Colors.textMuted, fontSize: 14, marginTop: 3 },
+  profileCopy: { gap: 10, paddingHorizontal: 16, paddingTop: 14 },
+  bio: { color: Colors.textPrimary, fontSize: 15, lineHeight: 21 },
+  locationRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  location: { color: Colors.textMuted, fontSize: 13 },
+  styleRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
+  styleTag: { color: Colors.brand, fontSize: 13, fontWeight: '700' },
+  statsRow: { flexDirection: 'row', paddingHorizontal: 16, paddingTop: 16 },
+  statItem: { flexDirection: 'row', alignItems: 'baseline', gap: 4, marginRight: 22 },
+  statValue: { color: Colors.textPrimary, fontSize: 15, fontWeight: '800', fontVariant: ['tabular-nums'] },
+  statLabel: { color: Colors.textMuted, fontSize: 13 },
+  actionRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingVertical: 16 },
+  followButton: { flex: 1, minHeight: 42, alignItems: 'center', justifyContent: 'center', borderRadius: 6, backgroundColor: Colors.textPrimary },
+  followingButton: { backgroundColor: 'transparent', borderWidth: 1, borderColor: Colors.border },
+  followText: { color: Colors.background, fontSize: 14, fontWeight: '800' },
+  followingText: { color: Colors.textPrimary },
+  messageButton: { flex: 1, minHeight: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: 6, borderWidth: 1, borderColor: Colors.border },
+  messageText: { color: Colors.textPrimary, fontSize: 14, fontWeight: '800' },
+  feedHeading: { height: 46, alignItems: 'center', justifyContent: 'flex-end', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.border },
+  feedHeadingText: { color: Colors.textPrimary, fontSize: 14, fontWeight: '800', paddingBottom: 11 },
+  feedIndicator: { width: 54, height: 3, borderRadius: 2, backgroundColor: Colors.brand },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: Colors.border },
 });

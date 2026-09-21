@@ -6,7 +6,7 @@ type AssetRequire = typeof require & {
 const extensions = (require as AssetRequire).extensions;
 let nextAssetId = 1;
 
-for (const extension of ['.jpg', '.wav']) {
+for (const extension of ['.jpg', '.mp4', '.wav']) {
   extensions[extension] = (module) => {
     module.exports = nextAssetId;
     nextAssetId += 1;
