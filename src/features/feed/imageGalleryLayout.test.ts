@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getImageGalleryLayout, getSingleImageAspectRatio } from './imageGalleryLayout';
+import { getImageGalleryLayout, getPreviewAspectRatio } from './imageGalleryLayout';
 
 describe('image gallery layout', () => {
   it.each([
@@ -14,9 +14,11 @@ describe('image gallery layout', () => {
     expect(getImageGalleryLayout(count)).toEqual(expected);
   });
 
-  it('keeps single images compact while respecting common source ratios', () => {
-    expect(getSingleImageAspectRatio(0.66)).toBe(1);
-    expect(getSingleImageAspectRatio(1.5)).toBe(1.5);
-    expect(getSingleImageAspectRatio(2.4)).toBe(16 / 9);
+  it('preserves common source ratios and limits only extreme images', () => {
+    expect(getPreviewAspectRatio(0.66)).toBe(3 / 4);
+    expect(getPreviewAspectRatio(0.85)).toBe(0.85);
+    expect(getPreviewAspectRatio(1.5)).toBe(1.5);
+    expect(getPreviewAspectRatio(2.4)).toBe(16 / 9);
+    expect(getPreviewAspectRatio(Number.NaN)).toBe(4 / 3);
   });
 });

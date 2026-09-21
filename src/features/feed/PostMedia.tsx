@@ -18,7 +18,7 @@ import ImageViewing from 'react-native-image-viewing';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/colors';
 import type { MediaContent } from '../social/types';
-import { getImageGalleryLayout, getSingleImageAspectRatio } from './imageGalleryLayout';
+import { getImageGalleryLayout, getPreviewAspectRatio } from './imageGalleryLayout';
 
 function imageSource(uri: number | string): ImageRequireSource | ImageURISource {
   return typeof uri === 'number' ? uri : { uri };
@@ -42,6 +42,8 @@ function ImageMedia({ media }: {
   const layout = getImageGalleryLayout(media.assets.length);
   const assets = media.assets.slice(0, layout.imageCount);
   if (assets.length === 0) return null;
+  const previewAspectRatio = getPreviewAspectRatio(assets[0].aspectRatio);
+  const galleryHeight = galleryWidth > 0 ? Math.round(galleryWidth / previewAspectRatio) : 0;
 
   const openImage = (index: number) => {
     setViewerIndex(index);
@@ -63,7 +65,9 @@ function ImageMedia({ media }: {
     <ImageViewing
       HeaderComponent={({ imageIndex }) => (
         <View style={[styles.viewerHeader, { height: insets.top + 52, paddingTop: insets.top }]}>
-          <Text style={[styles.viewerCount, { top: insets.top + 16 }]}>{imageIndex + 1} / {media.assets.length}</Text>
+          {media.assets.length > 1 ? (
+            <Text style={[styles.viewerCount, { top: insets.top + 16 }]}>{imageIndex + 1} / {media.assets.length}</Text>
+          ) : null}
           <Pressable accessibilityLabel="关闭图片" accessibilityRole="button" onPress={() => setViewerVisible(false)} style={styles.viewerClose}>
             <X color={Colors.textPrimary} size={25} strokeWidth={2} />
           </Pressable>
@@ -73,6 +77,7 @@ function ImageMedia({ media }: {
       images={media.assets.map((asset) => imageSource(asset.uri))}
       keyExtractor={(_, index) => media.assets[index].id}
       onRequestClose={() => setViewerVisible(false)}
+      presentationStyle="overFullScreen"
       swipeToCloseEnabled
       visible={viewerVisible}
     />
@@ -81,13 +86,24 @@ function ImageMedia({ media }: {
   if (assets.length === 1) {
     return (
       <>
-        <Pressable accessibilityLabel="查看图片" accessibilityRole="imagebutton" onPress={stopAndRun(() => openImage(0))}>
-          <Image
-            source={imageSource(assets[0].uri)}
-            style={[styles.singleImage, { aspectRatio: getSingleImageAspectRatio(assets[0].aspectRatio) }]}
-            resizeMode="cover"
-          />
-        </Pressable>
+        <View onLayout={updateGalleryWidth} style={[styles.previewFrame, { aspectRatio: previewAspectRatio }]}>
+          {galleryWidth > 0 ? (
+            <Pressable
+              accessibilityLabel="查看图片"
+              accessibilityRole="imagebutton"
+              onPress={stopAndRun(() => openImage(0))}
+              style={{ width: galleryWidth, height: galleryHeight }}
+            >
+              <Image
+                source={imageSource(assets[0].uri)}
+                style={{ width: galleryWidth, height: galleryHeight }}
+                resizeMode="contain"
+              />
+            </Pressable>
+          ) : (
+            <Image source={imageSource(assets[0].uri)} style={StyleSheet.absoluteFill} resizeMode="contain" />
+          )}
+        </View>
         {viewer}
       </>
     );
@@ -95,7 +111,7 @@ function ImageMedia({ media }: {
 
   return (
     <>
-      <View onLayout={updateGalleryWidth} style={styles.carousel}>
+      <View onLayout={updateGalleryWidth} style={[styles.previewFrame, { aspectRatio: previewAspectRatio }]}>
         {galleryWidth > 0 ? (
           <FlatList
             accessibilityLabel={`${assets.length}张图片，当前第${activeIndex + 1}张`}
@@ -110,12 +126,12 @@ function ImageMedia({ media }: {
                 accessibilityLabel={`查看第${index + 1}张图片`}
                 accessibilityRole="imagebutton"
                 onPress={stopAndRun(() => openImage(index))}
-                style={[styles.carouselPage, { width: galleryWidth, height: galleryWidth * 3 / 4 }]}
+                style={[styles.carouselPage, { width: galleryWidth, height: galleryHeight }]}
               >
                 <Image
                   source={imageSource(asset.uri)}
-                  style={{ width: galleryWidth, height: galleryWidth * 3 / 4 }}
-                  resizeMode="cover"
+                  style={{ width: galleryWidth, height: galleryHeight }}
+                  resizeMode="contain"
                 />
               </Pressable>
             )}
@@ -123,7 +139,7 @@ function ImageMedia({ media }: {
             style={StyleSheet.absoluteFill}
           />
         ) : (
-          <Image source={imageSource(assets[0].uri)} style={StyleSheet.absoluteFill} resizeMode="cover" />
+          <Image source={imageSource(assets[0].uri)} style={StyleSheet.absoluteFill} resizeMode="contain" />
         )}
         <View pointerEvents="none" style={styles.pageCountBadge}>
           <Text style={styles.pageCountText}>{activeIndex + 1} / {assets.length}</Text>
@@ -184,8 +200,7 @@ export default function PostMedia({ media, onOpen }: { media: MediaContent; onOp
 }
 
 const styles = StyleSheet.create({
-  singleImage: { width: '100%', borderRadius: 8, backgroundColor: Colors.surface },
-  carousel: { width: '100%', aspectRatio: 4 / 3, borderRadius: 8, overflow: 'hidden', backgroundColor: Colors.surface },
+  previewFrame: { width: '100%', borderRadius: 8, overflow: 'hidden', backgroundColor: Colors.surface },
   carouselPage: { overflow: 'hidden', backgroundColor: Colors.surface },
   pageCountBadge: { position: 'absolute', top: 9, right: 9, minWidth: 44, height: 26, paddingHorizontal: 8, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(9, 11, 13, 0.76)' },
   pageCountText: { color: Colors.textPrimary, fontSize: 12, fontWeight: '700', fontVariant: ['tabular-nums'] },

@@ -11,7 +11,7 @@ export function getImageGalleryLayout(imageCount: number): ImageGalleryLayout {
   };
 }
 
-export function getSingleImageAspectRatio(sourceAspectRatio: number): number {
+export function getPreviewAspectRatio(sourceAspectRatio: number): number {
   if (!Number.isFinite(sourceAspectRatio) || sourceAspectRatio <= 0) return 4 / 3;
-  return Math.min(16 / 9, Math.max(1, sourceAspectRatio));
+  return Math.min(16 / 9, Math.max(3 / 4, sourceAspectRatio));
 }
