@@ -72,13 +72,13 @@ function PlayableVideo({ uri, posterUri, isActive }: {
   return (
     <>
       <VideoView
-        contentFit="cover"
+        contentFit="contain"
         nativeControls={false}
         onFirstFrameRender={() => setFirstFrameRendered(true)}
         player={player}
         style={StyleSheet.absoluteFill}
       />
-      {!firstFrameRendered ? <Image source={imageSource(posterUri)} resizeMode="cover" style={StyleSheet.absoluteFill} /> : null}
+      {!firstFrameRendered ? <Image source={imageSource(posterUri)} resizeMode="contain" style={StyleSheet.absoluteFill} /> : null}
       <Pressable
         accessibilityLabel={isPlaying ? '暂停视频' : '播放视频'}
         accessibilityRole="button"
@@ -116,7 +116,7 @@ function VideoPage({ post, author, height, bottomInset, isActive, isLiked, isBoo
       {post.media.asset.playbackStatus === 'ready' ? (
         <PlayableVideo uri={post.media.asset.uri} posterUri={post.media.asset.posterUri} isActive={isActive} />
       ) : (
-        <Image source={imageSource(post.media.asset.posterUri)} resizeMode="cover" style={StyleSheet.absoluteFill} />
+        <Image source={imageSource(post.media.asset.posterUri)} resizeMode="contain" style={StyleSheet.absoluteFill} />
       )}
       <View pointerEvents="none" style={styles.imageShade} />
 

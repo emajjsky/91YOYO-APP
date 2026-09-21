@@ -15,3 +15,12 @@ export function getPreviewAspectRatio(sourceAspectRatio: number): number {
   if (!Number.isFinite(sourceAspectRatio) || sourceAspectRatio <= 0) return 4 / 3;
   return Math.min(16 / 9, Math.max(3 / 4, sourceAspectRatio));
 }
+
+export function getMediaPreviewSize(containerWidth: number, sourceAspectRatio: number) {
+  const width = Number.isFinite(containerWidth) ? Math.max(0, Math.round(containerWidth)) : 0;
+  const aspectRatio = getPreviewAspectRatio(sourceAspectRatio);
+  return {
+    width,
+    height: width > 0 ? Math.round(width / aspectRatio) : 0,
+  };
+}

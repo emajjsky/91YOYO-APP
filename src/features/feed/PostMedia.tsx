@@ -18,7 +18,7 @@ import ImageViewing from 'react-native-image-viewing';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/colors';
 import type { MediaContent } from '../social/types';
-import { getImageGalleryLayout, getPreviewAspectRatio } from './imageGalleryLayout';
+import { getImageGalleryLayout, getMediaPreviewSize, getPreviewAspectRatio } from './imageGalleryLayout';
 
 function imageSource(uri: number | string): ImageRequireSource | ImageURISource {
   return typeof uri === 'number' ? uri : { uri };
@@ -154,15 +154,28 @@ function VideoMedia({ media, onOpen }: {
   media: Extract<MediaContent, { type: 'video' }>;
   onOpen(): void;
 }) {
-  const ratio = Math.min(1.78, Math.max(0.8, media.asset.aspectRatio));
+  const [previewWidth, setPreviewWidth] = useState(0);
+  const previewAspectRatio = getPreviewAspectRatio(media.asset.aspectRatio);
+  const previewSize = getMediaPreviewSize(previewWidth, media.asset.aspectRatio);
+
+  const updatePreviewWidth = (event: LayoutChangeEvent) => {
+    const nextWidth = Math.round(event.nativeEvent.layout.width);
+    if (nextWidth > 0 && nextWidth !== previewWidth) setPreviewWidth(nextWidth);
+  };
+
   return (
     <Pressable
       accessibilityLabel={`播放视频：${media.asset.title}`}
       accessibilityRole="button"
+      onLayout={updatePreviewWidth}
       onPress={stopAndRun(onOpen)}
-      style={[styles.video, { aspectRatio: ratio }]}
+      style={[styles.video, { aspectRatio: previewAspectRatio }]}
     >
-      <Image source={imageSource(media.asset.posterUri)} style={StyleSheet.absoluteFill} resizeMode="cover" />
+      <Image
+        source={imageSource(media.asset.posterUri)}
+        style={previewWidth > 0 ? previewSize : StyleSheet.absoluteFill}
+        resizeMode="contain"
+      />
       <View style={styles.videoShade} />
       <View style={styles.playButton}>
         <Play color={Colors.textPrimary} fill={Colors.textPrimary} size={24} strokeWidth={1.8} />

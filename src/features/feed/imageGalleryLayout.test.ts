@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getImageGalleryLayout, getPreviewAspectRatio } from './imageGalleryLayout';
+import { getImageGalleryLayout, getMediaPreviewSize, getPreviewAspectRatio } from './imageGalleryLayout';
 
 describe('image gallery layout', () => {
   it.each([
@@ -20,5 +20,9 @@ describe('image gallery layout', () => {
     expect(getPreviewAspectRatio(1.5)).toBe(1.5);
     expect(getPreviewAspectRatio(2.4)).toBe(16 / 9);
     expect(getPreviewAspectRatio(Number.NaN)).toBe(4 / 3);
+  });
+
+  it('sizes a vertical video preview from its preserved source ratio', () => {
+    expect(getMediaPreviewSize(360, 0.72)).toEqual({ width: 360, height: 480 });
   });
 });
