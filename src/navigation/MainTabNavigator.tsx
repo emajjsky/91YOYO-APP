@@ -9,8 +9,8 @@ import ExploreScreen from '../screens/explore/ExploreScreen';
 import GearScreen from '../screens/gear/GearScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
 import { HomeIcon, ExploreIcon, GearIcon, ProfileIcon } from '../components/TabBarIcons';
-import { Colors } from '../constants/colors';
 import type { RootStackParamList } from './RootNavigator';
+import { useTheme } from '../theme/ThemeProvider';
 
 export type MainTabParamList = {
   Home: undefined;
@@ -30,6 +30,8 @@ const TAB_LABELS: Record<string, string> = {
 };
 
 function ComposeButton() {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   return (
     <Pressable
@@ -39,27 +41,32 @@ function ComposeButton() {
       onPress={() => navigation.navigate('Compose')}
     >
       <View style={styles.composeBtn}>
-        <Plus color={Colors.background} size={25} strokeWidth={2.5} />
+        <Plus color={colors.background} size={25} strokeWidth={2.5} />
       </View>
     </Pressable>
   );
 }
 
-function EmptyScreen() { return <View style={{ flex: 1, backgroundColor: Colors.background }} />; }
+function EmptyScreen() {
+  const { colors } = useTheme();
+  return <View style={{ flex: 1, backgroundColor: colors.background }} />;
+}
 
 export default function MainTabNavigator() {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarStyle: styles.tabBar,
         tabBarItemStyle: styles.tabBarItem,
-        tabBarActiveTintColor: Colors.textPrimary,
-        tabBarInactiveTintColor: Colors.textMuted,
+        tabBarActiveTintColor: colors.textPrimary,
+        tabBarInactiveTintColor: colors.textMuted,
         tabBarLabel: ({ color }) => {
           if (route.name === '__Compose') return null;
           return (
-            <Text style={{ color, fontSize: 10, fontWeight: '600', marginTop: 2 }}>
+              <Text style={{ color, fontSize: 10, fontWeight: '600', marginTop: 2 }}>
               {TAB_LABELS[route.name]}
             </Text>
           );
@@ -91,10 +98,11 @@ export default function MainTabNavigator() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: { background: string; border: string; textPrimary: string }) {
+  return StyleSheet.create({
   tabBar: {
-    backgroundColor: Colors.background,
-    borderTopColor: Colors.border,
+    backgroundColor: colors.background,
+    borderTopColor: colors.border,
     borderTopWidth: StyleSheet.hairlineWidth,
     height: 80,
     paddingBottom: 22,
@@ -111,9 +119,10 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: Colors.textPrimary,
+    backgroundColor: colors.textPrimary,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: -10,
   },
-});
+  });
+}

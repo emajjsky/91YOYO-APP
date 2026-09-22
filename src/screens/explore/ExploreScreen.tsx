@@ -18,12 +18,12 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Heart, ImageIcon, Music2, Play, Search, X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { POST_CATEGORIES } from '../../constants/categories';
-import { Colors } from '../../constants/colors';
 import FeedState from '../../features/feed/FeedState';
 import { useSocialStore } from '../../features/social/socialStore';
 import type { MediaContent, SocialPost } from '../../features/social/types';
 import type { MainTabParamList } from '../../navigation/MainTabNavigator';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import { useTheme } from '../../theme/ThemeProvider';
 import {
   getTrendingTopics,
   partitionExploreResults,
@@ -63,9 +63,10 @@ function compactCount(value: number): string {
 }
 
 function MediaBadge({ media }: { media: MediaContent }) {
-  if (media.type === 'video') return <Play color={Colors.textPrimary} fill={Colors.textPrimary} size={16} strokeWidth={1.8} />;
-  if (media.type === 'audio') return <Music2 color={Colors.textPrimary} size={16} strokeWidth={2} />;
-  if (media.type === 'images') return <ImageIcon color={Colors.textPrimary} size={16} strokeWidth={2} />;
+  const { colors } = useTheme();
+  if (media.type === 'video') return <Play color={colors.textPrimary} fill={colors.textPrimary} size={16} strokeWidth={1.8} />;
+  if (media.type === 'audio') return <Music2 color={colors.textPrimary} size={16} strokeWidth={2} />;
+  if (media.type === 'images') return <ImageIcon color={colors.textPrimary} size={16} strokeWidth={2} />;
   return null;
 }
 
@@ -74,6 +75,8 @@ function MediaCard({ result, width, onPress }: {
   width: number;
   onPress(): void;
 }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const source = mediaPreview(result.post.media);
   return (
     <Pressable accessibilityRole="button" onPress={onPress} style={[styles.mediaCard, { width }]}>
@@ -86,7 +89,7 @@ function MediaCard({ result, width, onPress }: {
       <View style={styles.mediaMeta}>
         <Text numberOfLines={1} style={styles.authorName}>@{result.author.handle}</Text>
         <View style={styles.likeMeta}>
-          <Heart color={Colors.textMuted} size={13} strokeWidth={2} />
+          <Heart color={colors.textMuted} size={13} strokeWidth={2} />
           <Text style={styles.metaText}>{compactCount(result.post.likeCount)}</Text>
         </View>
       </View>
@@ -95,6 +98,8 @@ function MediaCard({ result, width, onPress }: {
 }
 
 function TextResult({ result, onPress }: { result: ExploreResult; onPress(): void }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   return (
     <Pressable accessibilityRole="button" onPress={onPress} style={styles.textResult}>
       <View style={styles.textResultHeader}>
@@ -110,6 +115,8 @@ function TextResult({ result, onPress }: { result: ExploreResult; onPress(): voi
 }
 
 export default function ExploreScreen() {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
   const { width: windowWidth } = useWindowDimensions();
   const navigation = useNavigation<ExploreNavigation>();
@@ -202,7 +209,7 @@ export default function ExploreScreen() {
           </View>
         ) : null}
 
-        {feed.loadState === 'loading_more' ? <ActivityIndicator color={Colors.brand} style={styles.loadingMore} /> : null}
+        {feed.loadState === 'loading_more' ? <ActivityIndicator color={colors.brand} style={styles.loadingMore} /> : null}
         {feed.loadState === 'error' ? (
           <Pressable accessibilityRole="button" onPress={() => void loadAllPosts()} style={styles.retryButton}>
             <Text style={styles.retryText}>加载失败，点击重试</Text>
@@ -215,20 +222,20 @@ export default function ExploreScreen() {
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       <View style={styles.searchBar}>
-        <Search color={Colors.textMuted} size={19} strokeWidth={2} />
+        <Search color={colors.textMuted} size={19} strokeWidth={2} />
         <TextInput
           accessibilityLabel="搜索用户、帖子或话题"
           autoCapitalize="none"
           onChangeText={setQuery}
           placeholder="搜索用户、帖子或话题"
-          placeholderTextColor={Colors.textMuted}
+          placeholderTextColor={colors.textMuted}
           returnKeyType="search"
           style={styles.searchInput}
           value={query}
         />
         {query.length > 0 ? (
           <Pressable accessibilityLabel="清除搜索" accessibilityRole="button" hitSlop={8} onPress={() => setQuery('')} style={styles.clearButton}>
-            <X color={Colors.textMuted} size={18} strokeWidth={2} />
+            <X color={colors.textMuted} size={18} strokeWidth={2} />
           </Pressable>
         ) : null}
       </View>
@@ -252,45 +259,47 @@ export default function ExploreScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.background },
-  searchBar: { height: 44, flexDirection: 'row', alignItems: 'center', gap: 9, marginHorizontal: 14, marginTop: 8, paddingHorizontal: 12, borderRadius: 8, backgroundColor: Colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.border },
-  searchInput: { flex: 1, height: 42, color: Colors.textPrimary, fontSize: 15, paddingVertical: 0 },
+function createStyles(colors: { background: string; surface: string; border: string; textPrimary: string; textSecondary: string; textMuted: string; brand: string }) {
+  return StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.background },
+  searchBar: { height: 44, flexDirection: 'row', alignItems: 'center', gap: 9, marginHorizontal: 14, marginTop: 8, paddingHorizontal: 12, borderRadius: 8, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
+  searchInput: { flex: 1, height: 42, color: colors.textPrimary, fontSize: 15, paddingVertical: 0 },
   clearButton: { width: 32, height: 40, alignItems: 'center', justifyContent: 'center' },
-  categoryBar: { flexGrow: 0, height: 46, marginTop: 4, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.border },
+  categoryBar: { flexGrow: 0, height: 46, marginTop: 4, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
   categoryContent: { paddingHorizontal: 8 },
   categoryTab: { height: 45, minWidth: 66, paddingHorizontal: 9, alignItems: 'center', justifyContent: 'flex-end' },
-  categoryLabel: { color: Colors.textMuted, fontSize: 13, fontWeight: '600', paddingBottom: 9 },
-  categoryLabelActive: { color: Colors.textPrimary, fontWeight: '800' },
+  categoryLabel: { color: colors.textMuted, fontSize: 13, fontWeight: '600', paddingBottom: 9 },
+  categoryLabelActive: { color: colors.textPrimary, fontWeight: '800' },
   categoryIndicator: { width: 28, height: 2, backgroundColor: 'transparent' },
-  categoryIndicatorActive: { backgroundColor: Colors.brand },
+  categoryIndicatorActive: { backgroundColor: colors.brand },
   results: { flex: 1 },
   resultsContent: { paddingTop: 14, paddingBottom: 28 },
   topicSection: { marginBottom: 18 },
-  sectionTitle: { color: Colors.textPrimary, fontSize: 15, fontWeight: '800', marginHorizontal: 16, marginBottom: 10 },
+  sectionTitle: { color: colors.textPrimary, fontSize: 15, fontWeight: '800', marginHorizontal: 16, marginBottom: 10 },
   topicRow: { paddingHorizontal: 16, gap: 8 },
-  topicButton: { height: 34, flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 10, borderRadius: 6, backgroundColor: Colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.border },
-  topicLabel: { color: Colors.brand, fontSize: 13, fontWeight: '700' },
-  topicCount: { color: Colors.textMuted, fontSize: 11 },
+  topicButton: { height: 34, flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 10, borderRadius: 6, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
+  topicLabel: { color: colors.brand, fontSize: 13, fontWeight: '700' },
+  topicCount: { color: colors.textMuted, fontSize: 11 },
   resultSection: { marginBottom: 22 },
   mediaGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16 },
-  mediaCard: { overflow: 'hidden', borderRadius: 6, backgroundColor: Colors.surface },
-  preview: { width: '100%', aspectRatio: 1, backgroundColor: Colors.surface, overflow: 'hidden' },
+  mediaCard: { overflow: 'hidden', borderRadius: 6, backgroundColor: colors.surface },
+  preview: { width: '100%', aspectRatio: 1, backgroundColor: colors.surface, overflow: 'hidden' },
   previewShade: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(9, 11, 13, 0.12)' },
   mediaBadge: { position: 'absolute', right: 8, top: 8, width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(9, 11, 13, 0.72)' },
-  mediaContent: { minHeight: 48, color: Colors.textPrimary, fontSize: 13, lineHeight: 18, fontWeight: '600', paddingHorizontal: 9, paddingTop: 8 },
+  mediaContent: { minHeight: 48, color: colors.textPrimary, fontSize: 13, lineHeight: 18, fontWeight: '600', paddingHorizontal: 9, paddingTop: 8 },
   mediaMeta: { height: 32, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6, paddingHorizontal: 9 },
-  authorName: { flex: 1, color: Colors.textMuted, fontSize: 11 },
+  authorName: { flex: 1, color: colors.textMuted, fontSize: 11 },
   likeMeta: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  metaText: { color: Colors.textMuted, fontSize: 11 },
-  textSection: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.border, paddingTop: 16 },
-  textResult: { minHeight: 108, paddingHorizontal: 16, paddingVertical: 13, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.border },
+  metaText: { color: colors.textMuted, fontSize: 11 },
+  textSection: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border, paddingTop: 16 },
+  textResult: { minHeight: 108, paddingHorizontal: 16, paddingVertical: 13, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
   textResultHeader: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  textAuthor: { color: Colors.textPrimary, fontSize: 14, fontWeight: '700' },
-  textHandle: { flex: 1, color: Colors.textMuted, fontSize: 12 },
-  textContent: { color: Colors.textSecondary, fontSize: 14, lineHeight: 20, marginTop: 6 },
-  textHashtags: { color: Colors.brand, fontSize: 12, marginTop: 6 },
+  textAuthor: { color: colors.textPrimary, fontSize: 14, fontWeight: '700' },
+  textHandle: { flex: 1, color: colors.textMuted, fontSize: 12 },
+  textContent: { color: colors.textSecondary, fontSize: 14, lineHeight: 20, marginTop: 6 },
+  textHashtags: { color: colors.brand, fontSize: 12, marginTop: 6 },
   loadingMore: { paddingVertical: 20 },
   retryButton: { minHeight: 52, alignItems: 'center', justifyContent: 'center' },
-  retryText: { color: Colors.brand, fontSize: 13, fontWeight: '700' },
-});
+  retryText: { color: colors.brand, fontSize: 13, fontWeight: '700' },
+  });
+}

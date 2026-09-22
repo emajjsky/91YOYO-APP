@@ -1,6 +1,6 @@
 import React from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Colors } from '../../constants/colors';
+import { useTheme } from '../../theme/ThemeProvider';
 
 export interface FeedStateProps {
   kind: 'loading' | 'empty' | 'error';
@@ -11,9 +11,11 @@ export interface FeedStateProps {
 }
 
 export default function FeedState({ kind, title, message, actionLabel, onAction }: FeedStateProps) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   return (
     <View style={styles.container}>
-      {kind === 'loading' ? <ActivityIndicator color={Colors.brand} /> : null}
+      {kind === 'loading' ? <ActivityIndicator color={colors.brand} /> : null}
       {title ? <Text style={styles.title}>{title}</Text> : null}
       <Text style={styles.message}>{message}</Text>
       {actionLabel && onAction ? (
@@ -25,10 +27,12 @@ export default function FeedState({ kind, title, message, actionLabel, onAction 
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: { textPrimary: string; textMuted: string; brand: string }) {
+  return StyleSheet.create({
   container: { minHeight: 240, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, gap: 8 },
-  title: { color: Colors.textPrimary, fontSize: 16, fontWeight: '700', textAlign: 'center' },
-  message: { color: Colors.textMuted, fontSize: 14, lineHeight: 20, textAlign: 'center' },
+  title: { color: colors.textPrimary, fontSize: 16, fontWeight: '700', textAlign: 'center' },
+  message: { color: colors.textMuted, fontSize: 14, lineHeight: 20, textAlign: 'center' },
   action: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 10, marginTop: 4 },
-  actionText: { color: Colors.brand, fontSize: 14, fontWeight: '700' },
-});
+  actionText: { color: colors.brand, fontSize: 14, fontWeight: '700' },
+  });
+}

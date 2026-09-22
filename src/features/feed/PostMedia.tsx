@@ -16,9 +16,9 @@ import {
 import { Music2, Play, X } from 'lucide-react-native';
 import ImageViewing from 'react-native-image-viewing';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors } from '../../constants/colors';
 import type { MediaContent } from '../social/types';
-import { getImageGalleryLayout, getMediaPreviewSize, getPreviewAspectRatio } from './imageGalleryLayout';
+import { getImageGalleryLayout, getPreviewAspectRatio } from './imageGalleryLayout';
+import { useTheme } from '../../theme/ThemeProvider';
 
 function imageSource(uri: number | string): ImageRequireSource | ImageURISource {
   return typeof uri === 'number' ? uri : { uri };
@@ -34,6 +34,8 @@ function stopAndRun(callback: () => void) {
 function ImageMedia({ media }: {
   media: Extract<MediaContent, { type: 'images' }>;
 }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
   const [viewerVisible, setViewerVisible] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(0);
@@ -69,7 +71,7 @@ function ImageMedia({ media }: {
             <Text style={[styles.viewerCount, { top: insets.top + 16 }]}>{imageIndex + 1} / {media.assets.length}</Text>
           ) : null}
           <Pressable accessibilityLabel="关闭图片" accessibilityRole="button" onPress={() => setViewerVisible(false)} style={styles.viewerClose}>
-            <X color={Colors.textPrimary} size={25} strokeWidth={2} />
+            <X color={colors.textPrimary} size={25} strokeWidth={2} />
           </Pressable>
         </View>
       )}
@@ -97,11 +99,11 @@ function ImageMedia({ media }: {
               <Image
                 source={imageSource(assets[0].uri)}
                 style={{ width: galleryWidth, height: galleryHeight }}
-                resizeMode="contain"
+                resizeMode="cover"
               />
             </Pressable>
           ) : (
-            <Image source={imageSource(assets[0].uri)} style={StyleSheet.absoluteFill} resizeMode="contain" />
+            <Image source={imageSource(assets[0].uri)} style={StyleSheet.absoluteFill} resizeMode="cover" />
           )}
         </View>
         {viewer}
@@ -131,7 +133,7 @@ function ImageMedia({ media }: {
                 <Image
                   source={imageSource(asset.uri)}
                   style={{ width: galleryWidth, height: galleryHeight }}
-                  resizeMode="contain"
+                  resizeMode="cover"
                 />
               </Pressable>
             )}
@@ -139,11 +141,8 @@ function ImageMedia({ media }: {
             style={StyleSheet.absoluteFill}
           />
         ) : (
-          <Image source={imageSource(assets[0].uri)} style={StyleSheet.absoluteFill} resizeMode="contain" />
+          <Image source={imageSource(assets[0].uri)} style={StyleSheet.absoluteFill} resizeMode="cover" />
         )}
-        <View pointerEvents="none" style={styles.pageCountBadge}>
-          <Text style={styles.pageCountText}>{activeIndex + 1} / {assets.length}</Text>
-        </View>
       </View>
       {viewer}
     </>
@@ -154,31 +153,21 @@ function VideoMedia({ media, onOpen }: {
   media: Extract<MediaContent, { type: 'video' }>;
   onOpen(): void;
 }) {
-  const [previewWidth, setPreviewWidth] = useState(0);
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const previewAspectRatio = getPreviewAspectRatio(media.asset.aspectRatio);
-  const previewSize = getMediaPreviewSize(previewWidth, media.asset.aspectRatio);
-
-  const updatePreviewWidth = (event: LayoutChangeEvent) => {
-    const nextWidth = Math.round(event.nativeEvent.layout.width);
-    if (nextWidth > 0 && nextWidth !== previewWidth) setPreviewWidth(nextWidth);
-  };
 
   return (
     <Pressable
       accessibilityLabel={`播放视频：${media.asset.title}`}
       accessibilityRole="button"
-      onLayout={updatePreviewWidth}
       onPress={stopAndRun(onOpen)}
       style={[styles.video, { aspectRatio: previewAspectRatio }]}
     >
-      <Image
-        source={imageSource(media.asset.posterUri)}
-        style={previewWidth > 0 ? previewSize : StyleSheet.absoluteFill}
-        resizeMode="contain"
-      />
+      <Image source={imageSource(media.asset.posterUri)} style={StyleSheet.absoluteFill} resizeMode="cover" />
       <View style={styles.videoShade} />
       <View style={styles.playButton}>
-        <Play color={Colors.textPrimary} fill={Colors.textPrimary} size={24} strokeWidth={1.8} />
+        <Play color={colors.textPrimary} fill={colors.textPrimary} size={24} strokeWidth={1.8} />
       </View>
       {media.asset.playbackStatus === 'reserved' ? <Text style={styles.videoStatus}>视频素材准备中</Text> : null}
     </Pressable>
@@ -189,6 +178,8 @@ function AudioMedia({ media, onOpen }: {
   media: Extract<MediaContent, { type: 'audio' }>;
   onOpen(): void;
 }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   return (
     <Pressable accessibilityLabel={`播放音频：${media.asset.title}`} accessibilityRole="button" onPress={stopAndRun(onOpen)} style={styles.audio}>
       <Image source={imageSource(media.asset.coverUri)} style={styles.audioCover} />
@@ -197,7 +188,7 @@ function AudioMedia({ media, onOpen }: {
         <Text numberOfLines={1} style={styles.audioMeta}>{media.asset.artist} · {media.asset.bpm} BPM</Text>
       </View>
       <View style={styles.audioIcon}>
-        <Music2 color={Colors.brand} size={20} strokeWidth={2} />
+        <Music2 color={colors.brand} size={20} strokeWidth={2} />
       </View>
     </Pressable>
   );
@@ -212,22 +203,22 @@ export default function PostMedia({ media, onOpen }: { media: MediaContent; onOp
   }
 }
 
-const styles = StyleSheet.create({
-  previewFrame: { width: '100%', borderRadius: 8, overflow: 'hidden', backgroundColor: Colors.surface },
-  carouselPage: { overflow: 'hidden', backgroundColor: Colors.surface },
-  pageCountBadge: { position: 'absolute', top: 9, right: 9, minWidth: 44, height: 26, paddingHorizontal: 8, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(9, 11, 13, 0.76)' },
-  pageCountText: { color: Colors.textPrimary, fontSize: 12, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  viewerHeader: { position: 'absolute', zIndex: 1, top: 0, left: 0, right: 0, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' },
-  viewerCount: { position: 'absolute', left: 0, right: 0, textAlign: 'center', color: Colors.textPrimary, fontSize: 14, fontWeight: '700' },
-  viewerClose: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0, 0, 0, 0.5)' },
-  video: { width: '100%', borderRadius: 8, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.surface },
-  videoShade: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(9, 11, 13, 0.22)' },
-  playButton: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(9, 11, 13, 0.72)', alignItems: 'center', justifyContent: 'center' },
-  videoStatus: { position: 'absolute', left: 10, bottom: 10, color: Colors.textSecondary, fontSize: 12, backgroundColor: 'rgba(9, 11, 13, 0.78)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 },
-  audio: { minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: 10, borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: Colors.border, paddingVertical: 8 },
-  audioCover: { width: 48, height: 48, borderRadius: 4, backgroundColor: Colors.surface },
-  audioCopy: { flex: 1, minWidth: 0 },
-  audioTitle: { color: Colors.textPrimary, fontSize: 14, fontWeight: '700' },
-  audioMeta: { color: Colors.textMuted, fontSize: 12, marginTop: 3 },
-  audioIcon: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-});
+function createStyles(colors: { surface: string; textPrimary: string; textSecondary: string; textMuted: string; brand: string; border: string }) {
+  return StyleSheet.create({
+    previewFrame: { width: '100%', borderRadius: 8, overflow: 'hidden', backgroundColor: colors.surface },
+    carouselPage: { overflow: 'hidden', backgroundColor: colors.surface },
+    viewerHeader: { position: 'absolute', zIndex: 1, top: 0, left: 0, right: 0, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' },
+    viewerCount: { position: 'absolute', left: 0, right: 0, textAlign: 'center', color: colors.textPrimary, fontSize: 14, fontWeight: '700' },
+    viewerClose: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0, 0, 0, 0.5)' },
+    video: { width: '100%', borderRadius: 8, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
+    videoShade: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(9, 11, 13, 0.22)' },
+    playButton: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(9, 11, 13, 0.72)', alignItems: 'center', justifyContent: 'center' },
+    videoStatus: { position: 'absolute', left: 10, bottom: 10, color: colors.textSecondary, fontSize: 12, backgroundColor: 'rgba(9, 11, 13, 0.78)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 },
+    audio: { minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: 10, borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: colors.border, paddingVertical: 8 },
+    audioCover: { width: 48, height: 48, borderRadius: 4, backgroundColor: colors.surface },
+    audioCopy: { flex: 1, minWidth: 0 },
+    audioTitle: { color: colors.textPrimary, fontSize: 14, fontWeight: '700' },
+    audioMeta: { color: colors.textMuted, fontSize: 12, marginTop: 3 },
+    audioIcon: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  });
+}

@@ -13,7 +13,6 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { MapPin, Settings } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors } from '../../constants/colors';
 import FeedPost from '../../features/feed/FeedPost';
 import FeedState from '../../features/feed/FeedState';
 import { currentViewer } from '../../features/social/mockProfiles';
@@ -22,6 +21,7 @@ import { useSocialStore } from '../../features/social/socialStore';
 import type { SocialPost } from '../../features/social/types';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { postsForUser } from './profileModel';
+import { useTheme } from '../../theme/ThemeProvider';
 
 const viewer = mockUsers.find((user) => user.id === currentViewer.userId)!;
 
@@ -30,6 +30,8 @@ function imageSource(uri: number | string): ImageSourcePropType {
 }
 
 export default function ProfileScreen() {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const state = useSocialStore();
@@ -69,7 +71,7 @@ export default function ProfileScreen() {
       <View style={styles.profileCopy}>
         <Text style={styles.bio}>{viewer.bio}</Text>
         <View style={styles.locationRow}>
-          <MapPin color={Colors.textMuted} size={15} strokeWidth={2} />
+          <MapPin color={colors.textMuted} size={15} strokeWidth={2} />
           <Text style={styles.location}>{viewer.city}</Text>
         </View>
         <View style={styles.styleRow}>
@@ -109,7 +111,7 @@ export default function ProfileScreen() {
           onPress={() => navigation.navigate('AccountSettings')}
           style={styles.settingsButton}
         >
-          <Settings color={Colors.textPrimary} size={22} strokeWidth={2} />
+          <Settings color={colors.textPrimary} size={22} strokeWidth={2} />
         </Pressable>
       </View>
 
@@ -144,28 +146,30 @@ export default function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.background },
-  navbar: { height: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.border },
-  navTitle: { color: Colors.textPrimary, fontSize: 18, fontWeight: '900' },
+function createStyles(colors: { background: string; surface: string; border: string; textPrimary: string; textMuted: string; brand: string }) {
+  return StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.background },
+  navbar: { height: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
+  navTitle: { color: colors.textPrimary, fontSize: 18, fontWeight: '900' },
   settingsButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   profileHeader: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingTop: 18 },
-  avatar: { width: 76, height: 76, borderRadius: 38, backgroundColor: Colors.surface, borderWidth: 2, borderColor: Colors.brand },
+  avatar: { width: 76, height: 76, borderRadius: 38, backgroundColor: colors.surface, borderWidth: 2, borderColor: colors.brand },
   identity: { flex: 1, minWidth: 0 },
-  displayName: { color: Colors.textPrimary, fontSize: 21, fontWeight: '900' },
-  handle: { color: Colors.textMuted, fontSize: 14, marginTop: 3 },
+  displayName: { color: colors.textPrimary, fontSize: 21, fontWeight: '900' },
+  handle: { color: colors.textMuted, fontSize: 14, marginTop: 3 },
   profileCopy: { gap: 10, paddingHorizontal: 16, paddingTop: 14 },
-  bio: { color: Colors.textPrimary, fontSize: 15, lineHeight: 21 },
+  bio: { color: colors.textPrimary, fontSize: 15, lineHeight: 21 },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  location: { color: Colors.textMuted, fontSize: 13 },
+  location: { color: colors.textMuted, fontSize: 13 },
   styleRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
-  styleTag: { color: Colors.brand, fontSize: 13, fontWeight: '700' },
+  styleTag: { color: colors.brand, fontSize: 13, fontWeight: '700' },
   statsRow: { flexDirection: 'row', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 17 },
   statItem: { flexDirection: 'row', alignItems: 'baseline', gap: 4, marginRight: 22 },
-  statValue: { color: Colors.textPrimary, fontSize: 15, fontWeight: '800', fontVariant: ['tabular-nums'] },
-  statLabel: { color: Colors.textMuted, fontSize: 13 },
-  feedHeading: { height: 46, alignItems: 'center', justifyContent: 'flex-end', borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: Colors.border },
-  feedHeadingText: { color: Colors.textPrimary, fontSize: 14, fontWeight: '800', paddingBottom: 11 },
-  feedIndicator: { width: 54, height: 3, borderRadius: 2, backgroundColor: Colors.brand },
-  divider: { height: StyleSheet.hairlineWidth, backgroundColor: Colors.border },
-});
+  statValue: { color: colors.textPrimary, fontSize: 15, fontWeight: '800', fontVariant: ['tabular-nums'] },
+  statLabel: { color: colors.textMuted, fontSize: 13 },
+  feedHeading: { height: 46, alignItems: 'center', justifyContent: 'flex-end', borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
+  feedHeadingText: { color: colors.textPrimary, fontSize: 14, fontWeight: '800', paddingBottom: 11 },
+  feedIndicator: { width: 54, height: 3, borderRadius: 2, backgroundColor: colors.brand },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.border },
+  });
+}

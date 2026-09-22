@@ -9,7 +9,7 @@ import {
   type GestureResponderEvent,
 } from 'react-native';
 import { MoreHorizontal } from 'lucide-react-native';
-import { Colors } from '../../constants/colors';
+import { useTheme } from '../../theme/ThemeProvider';
 import { formatTimeAgoFromString } from '../../utils/timeAgo';
 import type { SocialUser } from '../social/types';
 
@@ -25,6 +25,8 @@ export interface PostHeaderProps {
 }
 
 export default function PostHeader({ author, createdAt, onOpenAuthor, onMore }: PostHeaderProps) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const handleAuthorPress = (event: GestureResponderEvent) => {
     event.stopPropagation();
     onOpenAuthor();
@@ -64,18 +66,20 @@ export default function PostHeader({ author, createdAt, onOpenAuthor, onMore }: 
           onPress={handleMorePress}
           style={styles.iconButton}
         >
-          <MoreHorizontal color={Colors.textMuted} size={20} strokeWidth={2} />
+          <MoreHorizontal color={colors.textMuted} size={20} strokeWidth={2} />
         </Pressable>
       ) : null}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: { surface: string; textPrimary: string; textMuted: string }) {
+  return StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  avatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: Colors.surface },
+  avatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.surface },
   identity: { flex: 1, minHeight: 44, justifyContent: 'center' },
-  name: { color: Colors.textPrimary, fontSize: 15, fontWeight: '700', flexShrink: 1 },
-  meta: { color: Colors.textMuted, fontSize: 13, marginTop: 2 },
+  name: { color: colors.textPrimary, fontSize: 15, fontWeight: '700', flexShrink: 1 },
+  meta: { color: colors.textMuted, fontSize: 13, marginTop: 2 },
   iconButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-});
+  });
+}

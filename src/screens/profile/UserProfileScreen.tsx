@@ -12,7 +12,6 @@ import {
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ChevronLeft, MapPin, MessageCircle } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors } from '../../constants/colors';
 import FeedPost from '../../features/feed/FeedPost';
 import FeedState from '../../features/feed/FeedState';
 import { currentViewer } from '../../features/social/mockProfiles';
@@ -21,6 +20,7 @@ import { useSocialStore } from '../../features/social/socialStore';
 import type { SocialPost } from '../../features/social/types';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { postsForUser } from './profileModel';
+import { useTheme } from '../../theme/ThemeProvider';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'UserProfile'>;
 
@@ -29,6 +29,8 @@ function imageSource(uri: number | string): ImageSourcePropType {
 }
 
 export default function UserProfileScreen({ navigation, route }: Props) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
   const state = useSocialStore();
   const userId = route.params.userId;
@@ -64,7 +66,7 @@ export default function UserProfileScreen({ navigation, route }: Props) {
       <View style={[styles.screen, { paddingTop: insets.top }]}>
         <View style={styles.navbar}>
           <Pressable accessibilityLabel="返回" accessibilityRole="button" onPress={navigation.goBack} style={styles.navButton}>
-            <ChevronLeft color={Colors.textPrimary} size={27} strokeWidth={2} />
+            <ChevronLeft color={colors.textPrimary} size={27} strokeWidth={2} />
           </Pressable>
           <Text style={styles.navTitle}>个人主页</Text>
           <View style={styles.navButton} />
@@ -87,7 +89,7 @@ export default function UserProfileScreen({ navigation, route }: Props) {
       <View style={styles.profileCopy}>
         <Text style={styles.bio}>{user.bio}</Text>
         <View style={styles.locationRow}>
-          <MapPin color={Colors.textMuted} size={15} strokeWidth={2} />
+          <MapPin color={colors.textMuted} size={15} strokeWidth={2} />
           <Text style={styles.location}>{user.city}</Text>
         </View>
         <View style={styles.styleRow}>
@@ -131,7 +133,7 @@ export default function UserProfileScreen({ navigation, route }: Props) {
               onPress={() => navigation.navigate('Chat', { seller: user.displayName })}
               style={styles.messageButton}
             >
-              <MessageCircle color={Colors.textPrimary} size={19} strokeWidth={2} />
+              <MessageCircle color={colors.textPrimary} size={19} strokeWidth={2} />
               <Text style={styles.messageText}>私信</Text>
             </Pressable>
           </>
@@ -149,7 +151,7 @@ export default function UserProfileScreen({ navigation, route }: Props) {
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       <View style={styles.navbar}>
         <Pressable accessibilityLabel="返回" accessibilityRole="button" onPress={navigation.goBack} style={styles.navButton}>
-          <ChevronLeft color={Colors.textPrimary} size={27} strokeWidth={2} />
+          <ChevronLeft color={colors.textPrimary} size={27} strokeWidth={2} />
         </Pressable>
         <View style={styles.navIdentity}>
           <Text numberOfLines={1} style={styles.navTitle}>{user.displayName}</Text>
@@ -189,37 +191,39 @@ export default function UserProfileScreen({ navigation, route }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.background },
-  navbar: { height: 52, flexDirection: 'row', alignItems: 'center', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.border, paddingHorizontal: 8 },
+function createStyles(colors: { background: string; surface: string; border: string; textPrimary: string; textMuted: string; brand: string }) {
+  return StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.background },
+  navbar: { height: 52, flexDirection: 'row', alignItems: 'center', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border, paddingHorizontal: 8 },
   navButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   navIdentity: { flex: 1, minWidth: 0 },
-  navTitle: { flex: 1, color: Colors.textPrimary, fontSize: 16, fontWeight: '800', textAlign: 'center' },
-  navSubtitle: { color: Colors.textMuted, fontSize: 11, textAlign: 'center', marginTop: 1 },
+  navTitle: { flex: 1, color: colors.textPrimary, fontSize: 16, fontWeight: '800', textAlign: 'center' },
+  navSubtitle: { color: colors.textMuted, fontSize: 11, textAlign: 'center', marginTop: 1 },
   profileHeader: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingTop: 18 },
-  avatar: { width: 76, height: 76, borderRadius: 38, backgroundColor: Colors.surface, borderWidth: 2, borderColor: Colors.border },
+  avatar: { width: 76, height: 76, borderRadius: 38, backgroundColor: colors.surface, borderWidth: 2, borderColor: colors.border },
   identity: { flex: 1, minWidth: 0 },
-  displayName: { color: Colors.textPrimary, fontSize: 21, fontWeight: '900' },
-  handle: { color: Colors.textMuted, fontSize: 14, marginTop: 3 },
+  displayName: { color: colors.textPrimary, fontSize: 21, fontWeight: '900' },
+  handle: { color: colors.textMuted, fontSize: 14, marginTop: 3 },
   profileCopy: { gap: 10, paddingHorizontal: 16, paddingTop: 14 },
-  bio: { color: Colors.textPrimary, fontSize: 15, lineHeight: 21 },
+  bio: { color: colors.textPrimary, fontSize: 15, lineHeight: 21 },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  location: { color: Colors.textMuted, fontSize: 13 },
+  location: { color: colors.textMuted, fontSize: 13 },
   styleRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
-  styleTag: { color: Colors.brand, fontSize: 13, fontWeight: '700' },
+  styleTag: { color: colors.brand, fontSize: 13, fontWeight: '700' },
   statsRow: { flexDirection: 'row', paddingHorizontal: 16, paddingTop: 16 },
   statItem: { flexDirection: 'row', alignItems: 'baseline', gap: 4, marginRight: 22 },
-  statValue: { color: Colors.textPrimary, fontSize: 15, fontWeight: '800', fontVariant: ['tabular-nums'] },
-  statLabel: { color: Colors.textMuted, fontSize: 13 },
+  statValue: { color: colors.textPrimary, fontSize: 15, fontWeight: '800', fontVariant: ['tabular-nums'] },
+  statLabel: { color: colors.textMuted, fontSize: 13 },
   actionRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingVertical: 16 },
-  followButton: { flex: 1, minHeight: 42, alignItems: 'center', justifyContent: 'center', borderRadius: 6, backgroundColor: Colors.textPrimary },
-  followingButton: { backgroundColor: 'transparent', borderWidth: 1, borderColor: Colors.border },
-  followText: { color: Colors.background, fontSize: 14, fontWeight: '800' },
-  followingText: { color: Colors.textPrimary },
-  messageButton: { flex: 1, minHeight: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: 6, borderWidth: 1, borderColor: Colors.border },
-  messageText: { color: Colors.textPrimary, fontSize: 14, fontWeight: '800' },
-  feedHeading: { height: 46, alignItems: 'center', justifyContent: 'flex-end', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.border },
-  feedHeadingText: { color: Colors.textPrimary, fontSize: 14, fontWeight: '800', paddingBottom: 11 },
-  feedIndicator: { width: 54, height: 3, borderRadius: 2, backgroundColor: Colors.brand },
-  divider: { height: StyleSheet.hairlineWidth, backgroundColor: Colors.border },
-});
+  followButton: { flex: 1, minHeight: 42, alignItems: 'center', justifyContent: 'center', borderRadius: 6, backgroundColor: colors.textPrimary },
+  followingButton: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.border },
+  followText: { color: colors.background, fontSize: 14, fontWeight: '800' },
+  followingText: { color: colors.textPrimary },
+  messageButton: { flex: 1, minHeight: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: 6, borderWidth: 1, borderColor: colors.border },
+  messageText: { color: colors.textPrimary, fontSize: 14, fontWeight: '800' },
+  feedHeading: { height: 46, alignItems: 'center', justifyContent: 'flex-end', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
+  feedHeadingText: { color: colors.textPrimary, fontSize: 14, fontWeight: '800', paddingBottom: 11 },
+  feedIndicator: { width: 54, height: 3, borderRadius: 2, backgroundColor: colors.brand },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.border },
+  });
+}

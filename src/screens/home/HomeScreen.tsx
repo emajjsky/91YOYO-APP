@@ -9,12 +9,12 @@ import {
   View,
 } from 'react-native';
 import { Pressable } from 'react-native';
+import { Check, Moon, MonitorCog, Sun } from 'lucide-react-native';
 import type { CompositeNavigationProp } from '@react-navigation/native';
 import { useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors } from '../../constants/colors';
 import FeedPost from '../../features/feed/FeedPost';
 import FeedState from '../../features/feed/FeedState';
 import type { FeedMode } from '../../features/social/contentRepository';
@@ -22,6 +22,7 @@ import { useSocialStore } from '../../features/social/socialStore';
 import type { SocialPost } from '../../features/social/types';
 import type { MainTabParamList } from '../../navigation/MainTabNavigator';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import { useTheme, type ThemeMode } from '../../theme/ThemeProvider';
 
 type HomeNavigation = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList, 'Home'>,
@@ -33,8 +34,55 @@ const MODES: { mode: FeedMode; label: string }[] = [
   { mode: 'following', label: '关注' },
 ];
 
+const THEME_OPTIONS: { mode: ThemeMode; label: string }[] = [
+  { mode: 'light', label: '明亮' },
+  { mode: 'dark', label: '黑暗' },
+  { mode: 'auto', label: '自动' },
+];
+
+function ThemeMenu({ mode, onSelect }: { mode: ThemeMode; onSelect(mode: ThemeMode): void }) {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
+  const [open, setOpen] = useState(false);
+  const Icon = mode === 'light' ? Sun : mode === 'dark' ? Moon : MonitorCog;
+  return (
+    <View style={styles.themeMenuWrap}>
+      <Pressable
+        accessibilityLabel={`主题设置，当前${THEME_OPTIONS.find((option) => option.mode === mode)?.label ?? '自动'}`}
+        accessibilityRole="button"
+        hitSlop={6}
+        onPress={() => setOpen((current) => !current)}
+        style={styles.themeButton}
+      >
+        <Icon color={colors.textPrimary} size={19} strokeWidth={2} />
+      </Pressable>
+      {open ? <View style={styles.themeMenu}>
+        {THEME_OPTIONS.map((option) => {
+          const OptionIcon = option.mode === 'light' ? Sun : option.mode === 'dark' ? Moon : MonitorCog;
+          const selected = option.mode === mode;
+          return (
+            <Pressable
+              accessibilityLabel={`切换到${option.label}主题`}
+              accessibilityRole="menuitem"
+              key={option.mode}
+              onPress={() => { onSelect(option.mode); setOpen(false); }}
+              style={[styles.themeOption, selected && styles.themeOptionSelected]}
+            >
+              <OptionIcon color={selected ? colors.brand : colors.textSecondary} size={17} strokeWidth={2} />
+              <Text style={styles.themeOptionText}>{option.label}</Text>
+              {selected ? <Check color={colors.brand} size={16} strokeWidth={2.5} /> : null}
+            </Pressable>
+          );
+        })}
+      </View> : null}
+    </View>
+  );
+}
+
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
+  const { colors, mode, setMode } = useTheme();
+  const styles = createStyles(colors);
   const navigation = useNavigation<HomeNavigation>();
   const [activeMode, setActiveMode] = useState<FeedMode>('recommended');
   const listRefs = useRef<Record<FeedMode, FlatList<string> | null>>({ recommended: null, following: null });
@@ -100,7 +148,7 @@ export default function HomeScreen() {
   const footer = (mode: FeedMode) => {
     const feed = state.feeds[mode];
     if (feed.loadState === 'loading_more') {
-      return <ActivityIndicator color={Colors.brand} style={styles.footer} />;
+      return <ActivityIndicator color={colors.brand} style={styles.footer} />;
     }
     if (feed.loadState === 'error' && feed.ids.length > 0) {
       return (
@@ -116,6 +164,7 @@ export default function HomeScreen() {
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       <View style={styles.topBar}>
         <Text style={styles.wordmark}>91YOYO</Text>
+        <ThemeMenu mode={mode} onSelect={setMode} />
       </View>
       <View style={styles.tabs}>
         {MODES.map(({ mode, label }) => {
@@ -152,7 +201,7 @@ export default function HomeScreen() {
                   <RefreshControl
                     refreshing={feed.loadState === 'refreshing'}
                     onRefresh={() => void state.loadFeed(mode, true)}
-                    tintColor={Colors.brand}
+                    tintColor={colors.brand}
                   />
                 }
                 onScroll={(event) => { offsets.current[mode] = event.nativeEvent.contentOffset.y; }}
@@ -172,24 +221,32 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.background },
-  topBar: { height: 44, justifyContent: 'center', paddingHorizontal: 16 },
-  wordmark: { color: Colors.textPrimary, fontSize: 18, fontWeight: '900' },
-  tabs: { height: 48, flexDirection: 'row', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.border },
+function createStyles(colors: { background: string; surface: string; border: string; textPrimary: string; textSecondary: string; textMuted: string; brand: string }) {
+  return StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.background },
+  topBar: { height: 38, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, zIndex: 10 },
+  wordmark: { color: colors.textPrimary, fontSize: 18, fontWeight: '900' },
+  themeMenuWrap: { position: 'relative', zIndex: 20 },
+  themeButton: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
+  themeMenu: { position: 'absolute', top: 36, right: 0, width: 132, padding: 5, borderRadius: 8, backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, shadowColor: '#000', shadowOpacity: 0.22, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 8 },
+  themeOption: { minHeight: 36, flexDirection: 'row', alignItems: 'center', gap: 9, paddingHorizontal: 9, borderRadius: 5 },
+  themeOptionSelected: { backgroundColor: colors.background },
+  themeOptionText: { flex: 1, color: colors.textPrimary, fontSize: 13, fontWeight: '600' },
+  tabs: { height: 44, flexDirection: 'row', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
   tab: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'flex-end' },
-  tabText: { color: Colors.textMuted, fontSize: 15, fontWeight: '600', paddingBottom: 10 },
-  tabTextActive: { color: Colors.textPrimary, fontWeight: '800' },
+  tabText: { color: colors.textMuted, fontSize: 15, fontWeight: '600', paddingBottom: 8 },
+  tabTextActive: { color: colors.textPrimary, fontWeight: '800' },
   indicator: { width: 48, height: 2, backgroundColor: 'transparent' },
-  indicatorActive: { backgroundColor: Colors.brand },
-  feedArea: { flex: 1, position: 'relative' },
-  listLayer: { ...StyleSheet.absoluteFill, backgroundColor: Colors.background },
+  indicatorActive: { backgroundColor: colors.brand },
+  feedArea: { flex: 1, position: 'relative', zIndex: 1 },
+  listLayer: { ...StyleSheet.absoluteFill, backgroundColor: colors.background },
   listLayerHidden: { opacity: 0 },
   listContent: { paddingBottom: 18 },
   emptyList: { flexGrow: 1 },
-  divider: { height: StyleSheet.hairlineWidth, backgroundColor: Colors.border },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.border },
   footer: { paddingVertical: 18 },
   footerButton: { minHeight: 52, alignItems: 'center', justifyContent: 'center' },
-  footerText: { color: Colors.brand, fontSize: 13, fontWeight: '600' },
+  footerText: { color: colors.brand, fontSize: 13, fontWeight: '600' },
   footerSpacer: { height: 12 },
-});
+  });
+}

@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { Plus } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors } from '../../constants/colors';
+import { useTheme } from '../../theme/ThemeProvider';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const CARD_W = (SCREEN_W - 32 - 10) / 2;
@@ -50,6 +50,8 @@ function imageSource(uri: number | string): ImageSourcePropType {
 }
 
 export default function GearScreen() {
+  const { colors } = useTheme();
+  const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
   const [activeCategory, setActiveCategory] = useState<GearCategory | 'all'>('all');
 
@@ -66,7 +68,7 @@ export default function GearScreen() {
       <View style={styles.navbar}>
         <Text style={styles.navTitle}>我的装备陈列室</Text>
         <Pressable accessibilityRole="button" style={styles.addBtn}>
-          <Plus color={Colors.textPrimary} size={17} strokeWidth={2.2} />
+          <Plus color={colors.textPrimary} size={17} strokeWidth={2.2} />
           <Text style={styles.addBtnText}>添加藏品</Text>
         </Pressable>
       </View>
@@ -146,37 +148,38 @@ export default function GearScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bg },
+function createStyles(colors: { background: string; surface: string; border: string; textPrimary: string; textSecondary: string; textMuted: string }) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
   navbar: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingVertical: 12,
-    borderBottomWidth: 0.5, borderBottomColor: '#1a1d22',
+    borderBottomWidth: 0.5, borderBottomColor: colors.border,
   },
-  navTitle: { color: Colors.white, fontSize: 18, fontWeight: '800' },
+  navTitle: { color: colors.textPrimary, fontSize: 18, fontWeight: '800' },
   addBtn: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 5 },
-  addBtnText: { color: Colors.white, fontSize: 13, fontWeight: '600' },
+  addBtnText: { color: colors.textPrimary, fontSize: 13, fontWeight: '600' },
 
-  catScroll: { flexGrow: 0, borderBottomWidth: 0.5, borderBottomColor: '#1a1d22' },
+  catScroll: { flexGrow: 0, borderBottomWidth: 0.5, borderBottomColor: colors.border },
   catContent: { paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
   catPill: {
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
-    backgroundColor: '#111318', borderWidth: 0.5, borderColor: '#252930',
+    backgroundColor: colors.surface, borderWidth: 0.5, borderColor: colors.border,
   },
-  catPillActive: { backgroundColor: Colors.white },
-  catText: { color: Colors.textMuted, fontSize: 13, fontWeight: '700' },
-  catTextActive: { color: Colors.black },
+  catPillActive: { backgroundColor: colors.textPrimary },
+  catText: { color: colors.textMuted, fontSize: 13, fontWeight: '700' },
+  catTextActive: { color: colors.background },
 
   grid: { padding: 16, gap: 10 },
   row: { gap: 10 },
   emptyState: { minHeight: 240, alignItems: 'center', justifyContent: 'center', gap: 6 },
-  emptyTitle: { color: Colors.white, fontSize: 15, fontWeight: '700' },
-  emptyText: { color: Colors.textMuted, fontSize: 13 },
+  emptyTitle: { color: colors.textPrimary, fontSize: 15, fontWeight: '700' },
+  emptyText: { color: colors.textMuted, fontSize: 13 },
 
   card: {
-    width: CARD_W, backgroundColor: '#0c0f14',
+    width: CARD_W, backgroundColor: colors.surface,
     borderRadius: 8, overflow: 'hidden',
-    borderWidth: 0.5, borderColor: '#1e2330',
+    borderWidth: 0.5, borderColor: colors.border,
   },
   imgWrapper: { width: '100%', aspectRatio: 1 },
   cardImage: { width: '100%', height: '100%' },
@@ -185,12 +188,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.75)',
     borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3,
   },
-  pinText: { color: Colors.white, fontSize: 10 },
+  pinText: { color: colors.textPrimary, fontSize: 10 },
 
   cardBody: { padding: 10, gap: 4 },
-  cardName: { color: Colors.white, fontSize: 13, fontWeight: '700' },
-  cardMeta: { color: Colors.textMuted, fontSize: 11 },
+  cardName: { color: colors.textPrimary, fontSize: 13, fontWeight: '700' },
+  cardMeta: { color: colors.textMuted, fontSize: 11 },
   cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 2 },
-  catBadge: { color: '#8899bb', fontSize: 11 },
-  likeText: { color: Colors.textMuted, fontSize: 11 },
-});
+  catBadge: { color: colors.textSecondary, fontSize: 11 },
+  likeText: { color: colors.textMuted, fontSize: 11 },
+  });
+}

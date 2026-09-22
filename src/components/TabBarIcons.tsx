@@ -1,23 +1,23 @@
 import React from 'react';
 import { Boxes, Compass, House, UserRound } from 'lucide-react-native';
-import { Colors } from '../constants/colors';
-
-function color(active: boolean) {
-  return active ? Colors.textPrimary : Colors.textMuted;
-}
+import { useTheme } from '../theme/ThemeProvider';
 
 export function HomeIcon({ active }: { active: boolean }) {
-  return <House color={color(active)} fill={active ? color(active) : 'transparent'} size={24} strokeWidth={2} />;
+  const { colors } = useTheme();
+  return <House color={active ? colors.textPrimary : colors.textMuted} fill={active ? colors.textPrimary : 'transparent'} size={24} strokeWidth={2} />;
 }
 
 export function ExploreIcon({ active }: { active: boolean }) {
-  return <Compass color={color(active)} size={24} strokeWidth={active ? 2.5 : 2} />;
+  const { colors } = useTheme();
+  return <Compass color={active ? colors.textPrimary : colors.textMuted} size={24} strokeWidth={active ? 2.5 : 2} />;
 }
 
 export function GearIcon({ active }: { active: boolean }) {
-  return <Boxes color={color(active)} size={24} strokeWidth={active ? 2.5 : 2} />;
+  const { colors } = useTheme();
+  return <Boxes color={active ? colors.textPrimary : colors.textMuted} size={24} strokeWidth={active ? 2.5 : 2} />;
 }
 
 export function ProfileIcon({ active }: { active: boolean }) {
-  return <UserRound color={color(active)} fill={active ? color(active) : 'transparent'} size={24} strokeWidth={2} />;
+  const { colors } = useTheme();
+  return <UserRound color={active ? colors.textPrimary : colors.textMuted} fill={active ? colors.textPrimary : 'transparent'} size={24} strokeWidth={2} />;
 }
