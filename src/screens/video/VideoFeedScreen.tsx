@@ -20,6 +20,7 @@ import { Colors } from '../../constants/colors';
 import { useSocialStore } from '../../features/social/socialStore';
 import type { SocialPost, SocialUser } from '../../features/social/types';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import { getContainedMediaSize } from '../../features/feed/imageGalleryLayout';
 import { orderVideoPosts } from './videoFeedModel';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'VideoFeed'>;
@@ -49,10 +50,12 @@ function RailButton({ label, count, active = false, onPress, children }: {
   );
 }
 
-function PlayableVideo({ uri, posterUri, isActive }: {
+function PlayableVideo({ uri, posterUri, isActive, width, height }: {
   uri: number | string;
   posterUri: number | string;
   isActive: boolean;
+  width: number;
+  height: number;
 }) {
   const [firstFrameRendered, setFirstFrameRendered] = useState(false);
   const player = useVideoPlayer(uri, (instance) => {
@@ -71,14 +74,16 @@ function PlayableVideo({ uri, posterUri, isActive }: {
 
   return (
     <>
-      <VideoView
-        contentFit="contain"
-        nativeControls={false}
-        onFirstFrameRender={() => setFirstFrameRendered(true)}
-        player={player}
-        style={StyleSheet.absoluteFill}
-      />
-      {!firstFrameRendered ? <Image source={imageSource(posterUri)} resizeMode="contain" style={StyleSheet.absoluteFill} /> : null}
+      <View style={[styles.mediaFrame, { width, height }]}>
+        <VideoView
+          contentFit="contain"
+          nativeControls={false}
+          onFirstFrameRender={() => setFirstFrameRendered(true)}
+          player={player}
+          style={StyleSheet.absoluteFill}
+        />
+        {!firstFrameRendered ? <Image source={imageSource(posterUri)} resizeMode="contain" style={StyleSheet.absoluteFill} /> : null}
+      </View>
       <Pressable
         accessibilityLabel={isPlaying ? '暂停视频' : '播放视频'}
         accessibilityRole="button"
@@ -95,9 +100,10 @@ function PlayableVideo({ uri, posterUri, isActive }: {
   );
 }
 
-function VideoPage({ post, author, height, bottomInset, isActive, isLiked, isBookmarked, onAuthor, onLike, onComment, onBookmark, onShare }: {
+function VideoPage({ post, author, width, height, bottomInset, isActive, isLiked, isBookmarked, onAuthor, onLike, onComment, onBookmark, onShare }: {
   post: SocialPost;
   author: SocialUser;
+  width: number;
   height: number;
   bottomInset: number;
   isActive: boolean;
@@ -110,13 +116,16 @@ function VideoPage({ post, author, height, bottomInset, isActive, isLiked, isBoo
   onShare(): void;
 }) {
   if (post.media.type !== 'video') return null;
+  const mediaSize = getContainedMediaSize(width, height, post.media.asset.aspectRatio);
 
   return (
     <View style={[styles.page, { height }]}>
       {post.media.asset.playbackStatus === 'ready' ? (
-        <PlayableVideo uri={post.media.asset.uri} posterUri={post.media.asset.posterUri} isActive={isActive} />
+        <PlayableVideo uri={post.media.asset.uri} posterUri={post.media.asset.posterUri} isActive={isActive} width={mediaSize.width} height={mediaSize.height} />
       ) : (
-        <Image source={imageSource(post.media.asset.posterUri)} resizeMode="contain" style={StyleSheet.absoluteFill} />
+        <View style={[styles.mediaFrame, mediaSize]}>
+          <Image source={imageSource(post.media.asset.posterUri)} resizeMode="contain" style={StyleSheet.absoluteFill} />
+        </View>
       )}
       <View pointerEvents="none" style={styles.imageShade} />
 
@@ -157,7 +166,7 @@ function VideoPage({ post, author, height, bottomInset, isActive, isLiked, isBoo
 
 export default function VideoFeedScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
-  const { height } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const state = useSocialStore();
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -207,6 +216,7 @@ export default function VideoFeedScreen({ navigation, route }: Props) {
             <VideoPage
               post={item}
               author={author}
+              width={width}
               height={height}
               bottomInset={insets.bottom}
               isActive={index === activeIndex}
@@ -235,7 +245,8 @@ export default function VideoFeedScreen({ navigation, route }: Props) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.black },
-  page: { width: '100%', backgroundColor: Colors.black, overflow: 'hidden' },
+  page: { width: '100%', alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.black, overflow: 'hidden' },
+  mediaFrame: { alignSelf: 'center', backgroundColor: Colors.black, overflow: 'hidden' },
   imageShade: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0, 0, 0, 0.28)' },
   centerPlayButton: { position: 'absolute', alignSelf: 'center', top: '45%', width: 58, height: 58, borderRadius: 29, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0, 0, 0, 0.58)' },
   reservedState: { position: 'absolute', left: '20%', right: '20%', top: '39%', alignItems: 'center', gap: 6, paddingVertical: 14, borderRadius: 6, backgroundColor: 'rgba(0, 0, 0, 0.62)' },

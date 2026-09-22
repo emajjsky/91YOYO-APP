@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getImageGalleryLayout, getPreviewAspectRatio } from './imageGalleryLayout';
+import { getContainedMediaSize, getImageGalleryLayout, getPreviewAspectRatio } from './imageGalleryLayout';
 
 describe('image gallery layout', () => {
   it.each([
@@ -21,5 +21,10 @@ describe('image gallery layout', () => {
     expect(getPreviewAspectRatio(16 / 9)).toBe(16 / 9);
     expect(getPreviewAspectRatio(2.4)).toBe(2.4);
     expect(getPreviewAspectRatio(Number.NaN)).toBe(4 / 3);
+  });
+
+  it('fits original media inside the full-screen stage without cropping', () => {
+    expect(getContainedMediaSize(390, 844, 1.03)).toEqual({ width: 390, height: 379 });
+    expect(getContainedMediaSize(390, 844, 9 / 16)).toEqual({ width: 390, height: 693 });
   });
 });
