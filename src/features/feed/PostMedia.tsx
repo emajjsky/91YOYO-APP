@@ -88,7 +88,7 @@ function ImageMedia({ media }: {
   if (assets.length === 1) {
     return (
       <>
-        <View onLayout={updateGalleryWidth} style={[styles.previewFrame, { aspectRatio: previewAspectRatio }]}>
+        <View onLayout={updateGalleryWidth} style={[styles.mediaViewport, { aspectRatio: previewAspectRatio }]}>
           {galleryWidth > 0 ? (
             <Pressable
               accessibilityLabel="查看图片"
@@ -113,7 +113,7 @@ function ImageMedia({ media }: {
 
   return (
     <>
-      <View onLayout={updateGalleryWidth} style={[styles.previewFrame, { aspectRatio: previewAspectRatio }]}>
+      <View onLayout={updateGalleryWidth} style={[styles.mediaViewport, { aspectRatio: previewAspectRatio }]}>
         {galleryWidth > 0 ? (
           <FlatList
             accessibilityLabel={`${assets.length}张图片，当前第${activeIndex + 1}张`}
@@ -205,12 +205,12 @@ export default function PostMedia({ media, onOpen }: { media: MediaContent; onOp
 
 function createStyles(colors: { surface: string; textPrimary: string; textSecondary: string; textMuted: string; brand: string; border: string }) {
   return StyleSheet.create({
-    previewFrame: { width: '100%', borderRadius: 8, overflow: 'hidden', backgroundColor: colors.surface },
+    mediaViewport: { width: '100%', alignSelf: 'stretch', borderRadius: 8, overflow: 'hidden', backgroundColor: colors.surface },
     carouselPage: { overflow: 'hidden', backgroundColor: colors.surface },
     viewerHeader: { position: 'absolute', zIndex: 1, top: 0, left: 0, right: 0, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' },
     viewerCount: { position: 'absolute', left: 0, right: 0, textAlign: 'center', color: colors.textPrimary, fontSize: 14, fontWeight: '700' },
     viewerClose: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0, 0, 0, 0.5)' },
-    video: { width: '100%', borderRadius: 8, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
+    video: { width: '100%', alignSelf: 'stretch', borderRadius: 8, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
     videoShade: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(9, 11, 13, 0.22)' },
     playButton: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(9, 11, 13, 0.72)', alignItems: 'center', justifyContent: 'center' },
     videoStatus: { position: 'absolute', left: 10, bottom: 10, color: colors.textSecondary, fontSize: 12, backgroundColor: 'rgba(9, 11, 13, 0.78)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 },

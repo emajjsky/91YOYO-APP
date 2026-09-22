@@ -45,7 +45,7 @@ function createStyles(colors: { background: string; textMuted: string; textPrima
   return StyleSheet.create({
   post: { backgroundColor: colors.background, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 4 },
   reason: { color: colors.textMuted, fontSize: 12, fontWeight: '600', marginLeft: 52, marginBottom: 6 },
-  body: { marginLeft: 52, gap: 8 },
+  body: { alignSelf: 'stretch', marginLeft: 52, gap: 8 },
   content: { color: colors.textPrimary, fontSize: 15, lineHeight: 21 },
   hashtags: { color: colors.brand },
   });
